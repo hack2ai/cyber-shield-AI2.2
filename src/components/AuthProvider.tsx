@@ -116,9 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isAuthorized = [
       'localhost',
       '127.0.0.1',
+      'hack2ai.github.io',
       'gen-lang-client-0121845763.firebaseapp.com',
       'gen-lang-client-0121845763.web.app'
-    ].includes(hostname) || hostname.endsWith('.gitpod.io') || hostname.endsWith('.github.dev');
+    ].includes(hostname) || hostname.endsWith('.gitpod.io') || hostname.endsWith('.github.dev') || hostname.endsWith('.github.io');
 
     if (!isAuthorized) {
       console.log("Detecting unauthorized domain. Activating Guest fallback mode instantly.");
