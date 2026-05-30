@@ -30,6 +30,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [simulatedRole, setSimulatedRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const activateMockSession = (email: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const uid = `mock-user-${cleanEmail.replace(/[^a-z0-9]/g, '-')}`;
+    const displayName = cleanEmail.split('@')[0];
+    const nameFormatted = displayName.charAt(0).toUpperCase() + displayName.slice(1) + " (Simulated)";
+    
+    const mockUser = {
+      uid: uid,
+      email: cleanEmail,
+      displayName: nameFormatted,
+      isAnonymous: false,
+      emailVerified: true,
+      metadata: {},
+      providerData: [],
+      refreshToken: '',
+      tenantId: null,
+      delete: async () => {},
+      getIdToken: async () => 'mock-id-token',
+      getIdTokenResult: async () => ({} as any),
+      reload: async () => {},
+      toJSON: () => ({})
+    } as unknown as User;
+    setUser(mockUser);
+    setProfile({
+      uid: uid,
+      email: cleanEmail,
+      displayName: nameFormatted,
+      role: 'user',
+      createdAt: new Date()
+    });
+    setLoading(false);
+    localStorage.setItem('cyber_shield_mock_user_email', cleanEmail);
+    localStorage.removeItem('cyber_shield_guest_session');
+  };
+
   const activateGuestSession = () => {
     const guestUser = {
       uid: 'mock-analyst-1337',
@@ -60,6 +95,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    const mockEmail = localStorage.getItem('cyber_shield_mock_user_email');
+    if (mockEmail) {
+      activateMockSession(mockEmail);
+      return;
+    }
+
     const isGuest = localStorage.getItem('cyber_shield_guest_session');
     if (isGuest === 'true') {
       activateGuestSession();
@@ -112,6 +153,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
+    const emailInput = window.prompt("Enter email address to log in:");
+    
+    if (emailInput !== null) {
+      const email = emailInput.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      
+      if (email && emailRegex.test(email)) {
+        activateMockSession(email);
+        return;
+      } else if (email) {
+        alert("Invalid email format! Please enter a valid email address (e.g. user@example.com).");
+        return;
+      }
+    }
+
     const hostname = window.location.hostname;
     const isAuthorized = [
       'localhost',
@@ -141,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     localStorage.removeItem('cyber_shield_guest_session');
+    localStorage.removeItem('cyber_shield_mock_user_email');
     await logout();
     setUser(null);
     setProfile(null);
