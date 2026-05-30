@@ -32,7 +32,7 @@ This command compiles the source code into the `docs/` folder (configured via `v
 The project is pre-configured to be served dynamically from GitHub Pages via the `/docs` directory on the `main` branch. 
 
 To enable this on GitHub:
-1. Open your repository on GitHub: `https://github.com/hack2ai/cyber-sheild-AI2.2`.
+1. Open your repository on GitHub: `https://github.com/hack2ai/cyber-shield-AI2.2`.
 2. Navigate to **Settings** (tab at the top menu).
 3. Under the left-hand sidebar, select **Pages**.
 4. In the **Build and deployment** section:
