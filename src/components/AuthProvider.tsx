@@ -198,7 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleLogout = async () => {
     localStorage.removeItem('cyber_shield_guest_session');
     localStorage.removeItem('cyber_shield_mock_user_email');
-    await logout();
+    try {
+      await logout();
+    } catch (e) {
+      console.warn("Bypassed Firebase signOut error during logout:", e);
+    }
     setUser(null);
     setProfile(null);
   };
