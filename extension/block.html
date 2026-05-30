@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cyber Shield - INTERCEPT_WARN</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+        
+        :root {
+            --neon-red: #ff3131;
+            --cyber-black: #050505;
+            --glass-bg: rgba(15, 10, 10, 0.95);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--cyber-black);
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 49, 49, 0.08) 0%, transparent 70%),
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 100%, 100% 4px, 6px 100%;
+        }
+
+        /* Scanline animation */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 10;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .shield-panel {
+            background: var(--glass-bg);
+            border: 2px solid var(--neon-red);
+            box-shadow: 0 0 30px rgba(255, 49, 49, 0.3), inset 0 0 15px rgba(255, 49, 49, 0.1);
+            width: 90%;
+            max-width: 650px;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(255, 49, 49, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 49, 49, 0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .alert-header {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--neon-red);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 49, 49, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        .threat-gauge {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 4px double var(--neon-red);
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(255, 49, 49, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .threat-score {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--neon-red);
+            text-shadow: 0 0 8px rgba(255, 49, 49, 0.4);
+        }
+
+        .threat-label {
+            font-size: 8px;
+            opacity: 0.6;
+            letter-spacing: 2px;
+        }
+
+        .blocked-info {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 49, 49, 0.2);
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        .blocked-url {
+            color: var(--neon-red);
+            font-weight: bold;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .warning-text {
+            font-size: 12px;
+            line-height: 1.6;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .badge-list {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border: 1px solid var(--neon-red);
+            background: rgba(255, 49, 49, 0.1);
+            color: var(--neon-red);
+            text-transform: uppercase;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background: var(--neon-red);
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255, 49, 49, 0.4);
+            transition: all 0.2s;
+            width: 80%;
+        }
+
+        .btn-primary:hover {
+            background: #ff5e5e;
+            box-shadow: 0 0 30px rgba(255, 49, 49, 0.6);
+        }
+
+        .btn-bypass {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            font-size: 10px;
+            text-decoration: underline;
+            font-family: inherit;
+            letter-spacing: 1px;
+            transition: color 0.2s;
+        }
+
+        .btn-bypass:hover {
+            color: var(--neon-red);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shield-panel">
+        <div class="grid-overlay"></div>
+        
+        <div class="alert-header">
+            <span class="alert-icon">⚠️</span>
+            <span>SHIELD_INTERCEPT_ACTIVE</span>
+        </div>
+
+        <div class="threat-gauge">
+            <span id="threat-score" class="threat-score">--</span>
+            <span class="threat-label">RISK_INDEX</span>
+        </div>
+
+        <div class="blocked-info">
+            <div>DESTINATION_URL_BLOCKED:</div>
+            <div id="blocked-url" class="blocked-url">--</div>
+        </div>
+
+        <p class="warning-text">
+            This website has been flagged by Cyber Shield AI as dangerous. It displays characteristics of a visual impersonation attack or credential harvesting portal targeting sensitive account log-ins.
+        </p>
+
+        <div class="badge-list">
+            <span id="class-badge" class="badge">--</span>
+            <span id="brand-badge" class="badge">--</span>
+        </div>
+
+        <div class="btn-group">
+            <button id="back-btn" class="btn-primary">RETURN_TO_SAFETY</button>
+            <button id="bypass-btn" class="btn-bypass">PROCEED_ANYWAY_UNSAFE</button>
+        </div>
+    </div>
+
+    <script src="block.js"></script>
+</body>
+</html>

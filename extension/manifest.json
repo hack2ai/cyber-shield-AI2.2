@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Cyber Shield AI Live Protection",
+  "version": "1.1",
+  "description": "Real-time AI-powered phishing and malicious website protection.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "webNavigation",
+    "notifications",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

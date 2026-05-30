@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Cyber Shield AI</div>
+            <div class="status-dot"></div>
+        </header>
+
+        <main id="main-view">
+            <div class="url-badge" id="current-url">Detecting tab...</div>
+            
+            <button id="scan-btn" class="primary-btn">
+                <span class="btn-text">INITIATE_SCAN</span>
+                <div class="scan-loader hidden"></div>
+            </button>
+
+            <div id="results-panel" class="hidden">
+                <div class="score-container">
+                    <div id="risk-score" class="score">--</div>
+                    <div class="score-label">THREAT_LEVEL</div>
+                </div>
+                
+                <div id="verdict" class="verdict">ANALYZING...</div>
+                
+                <div class="details">
+                    <div class="detail-item">
+                        <span class="label">TLD_REPU:</span>
+                        <span id="tld-status" class="value">--</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">SSL_AUTH:</span>
+                        <span id="ssl-status" class="value">--</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="settings-view" class="hidden">
+            <label>API_GATEWAY_URL</label>
+            <input type="text" id="api-url" placeholder="https://your-phishintel-url.run.app">
+            <button id="save-settings" class="secondary-btn">SAVE_CONFIG</button>
+        </div>
+
+        <footer>
+            <button id="toggle-settings">CONFIG</button>
+            <span id="version">V1.0.0</span>
+        </footer>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "Cyber Shield AI",
+  "description": "Real-time AI-powered phishing and malicious website detection with threat scoring and technical intelligence.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": []
+}

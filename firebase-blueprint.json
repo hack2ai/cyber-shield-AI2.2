@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile and role information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "scanReport": {
+      "title": "Scan Report",
+      "description": "Historical phishing analysis reports",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "target": { "type": "string" },
+        "type": { "type": "string" },
+        "threatScore": { "type": "number" },
+        "classification": { "type": "string" },
+        "explanation": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "riskIndicators": { "type": "array", "items": { "type": "string" } },
+        "technicalSummary": { "type": "object" },
+        "brandImpersonated": { "type": "string" },
+        "visualIndicators": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "target", "classification", "createdAt"]
+    },
+    "subscription": {
+      "title": "Subscription",
+      "description": "Keyword monitoring subscription",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "keyword": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "keyword", "createdAt"]
+    },
+    "alert": {
+      "title": "Alert",
+      "description": "Threat notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "keyword": { "type": "string" },
+        "message": { "type": "string" },
+        "threatScore": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "keyword", "message", "timestamp"]
+    },
+    "chatMessage": {
+      "title": "Chat Message",
+      "description": "Historical message logs for ThreatGPT Assistant",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model", "assistant"] },
+        "content": { "type": "string" },
+        "mode": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profile documents"
+    },
+    "/scanReports/{reportId}": {
+      "schema": "scanReport",
+      "description": "History of all scans"
+    },
+    "/subscriptions/{subId}": {
+      "schema": "subscription",
+      "description": "User keyword subscriptions"
+    },
+    "/alerts/{alertId}": {
+      "schema": "alert",
+      "description": "Real-time threat alerts"
+    },
+    "/chatHistory/{messageId}": {
+      "schema": "chatMessage",
+      "description": "User interaction history logs with ThreatGPT"
+    }
+  }
+}

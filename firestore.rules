@@ -1,0 +1,199 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null && (!('email_verified' in request.auth.token) || request.auth.token.email_verified == true);
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // --- Users ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt', 'displayName']) &&
+             data.keys().size() == 5 &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.displayName is string && data.displayName.size() <= 128 &&
+             data.role in ['user', 'admin'] &&
+             data.createdAt == request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && 
+                      incoming().role == existing().role && // Prevent self-promotion
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email']);
+    }
+
+    // --- Scan Reports ---
+    function isValidScanReport(data) {
+      return data.keys().hasAll(['userId', 'target', 'classification', 'createdAt']) &&
+             data.keys().hasOnly(['userId', 'target', 'classification', 'createdAt', 'type', 'threatScore', 'explanation', 'recommendation', 'riskIndicators', 'technicalSummary', 'brandImpersonated', 'visualIndicators']) &&
+             data.userId == request.auth.uid &&
+             data.target is string && data.target.size() <= 2048 &&
+             data.classification is string &&
+             data.createdAt == request.time &&
+             (!('threatScore' in data) || (data.threatScore >= 0 && data.threatScore <= 100));
+    }
+
+    match /scanReports/{reportId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidScanReport(incoming()) && isValidId(reportId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      // No updates allowed to history for integrity
+    }
+
+    // --- File Scan Reports ---
+    function isValidFileScanReport(data) {
+      return data.keys().hasAll(['userId', 'fileName', 'fileSize', 'fileType', 'sha256', 'classification', 'createdAt']) &&
+             data.keys().hasOnly(['userId', 'fileName', 'fileSize', 'fileType', 'sha256', 'classification', 'createdAt', 'threatScore', 'explanation', 'recommendation', 'detectionStats', 'iocIndicators', 'timeline']) &&
+             data.userId == request.auth.uid &&
+             data.fileName is string && data.fileName.size() <= 256 &&
+             data.fileSize is number && data.fileSize >= 0 &&
+             data.fileType is string && data.fileType.size() <= 128 &&
+             data.sha256 is string && data.sha256.size() == 64 &&
+             data.classification is string &&
+             data.createdAt == request.time &&
+             (!('threatScore' in data) || (data.threatScore >= 0 && data.threatScore <= 100));
+    }
+
+    match /fileScanReports/{reportId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidFileScanReport(incoming()) && isValidId(reportId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      // No updates allowed to history for integrity
+    }
+
+    // --- Breach Reports ---
+    function isValidBreachReport(data) {
+      return data.keys().hasAll(['userId', 'identity', 'breachCount', 'createdAt']) &&
+             data.keys().hasOnly(['userId', 'identity', 'breachCount', 'createdAt', 'breaches', 'compromisedCategories', 'passwordExposure', 'recommendations']) &&
+             data.userId == request.auth.uid &&
+             data.identity is string && data.identity.size() <= 256 &&
+             data.breachCount is number && data.breachCount >= 0 &&
+             data.createdAt == request.time;
+    }
+
+    match /breachReports/{reportId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidBreachReport(incoming()) && isValidId(reportId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      // No updates allowed to history for integrity
+    }
+
+    // --- Email Header Reports ---
+    function isValidEmailHeaderReport(data) {
+      return data.keys().hasAll(['userId', 'rawHeaders', 'threatScore', 'classification', 'createdAt']) &&
+             data.keys().hasOnly(['userId', 'rawHeaders', 'threatScore', 'classification', 'createdAt', 'spf', 'dkim', 'dmarc', 'senderIp', 'hopsCount', 'hops', 'explanation', 'spoofingIndicators', 'recommendations']) &&
+             data.userId == request.auth.uid &&
+             data.rawHeaders is string && data.rawHeaders.size() <= 100000 &&
+             data.threatScore is number && data.threatScore >= 0 && data.threatScore <= 100 &&
+             data.classification is string &&
+             data.createdAt == request.time;
+    }
+
+    match /emailHeaderReports/{reportId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidEmailHeaderReport(incoming()) && isValidId(reportId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      // No updates allowed to history for integrity
+    }
+
+    // --- Subscriptions ---
+    function isValidSubscription(data) {
+      return data.keys().hasAll(['userId', 'keyword', 'createdAt']) &&
+             data.keys().hasOnly(['userId', 'keyword', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.keyword is string && data.keyword.size() <= 100 &&
+             data.createdAt == request.time;
+    }
+
+    match /subscriptions/{subId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidSubscription(incoming()) && isValidId(subId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- Alerts ---
+    function isValidAlert(data) {
+      return data.keys().hasAll(['userId', 'keyword', 'message', 'threatScore', 'timestamp']) &&
+             data.keys().size() == 5 &&
+             data.userId == request.auth.uid &&
+             data.keyword is string && data.keyword.size() <= 256 &&
+             data.message is string && data.message.size() <= 1024 &&
+             data.threatScore is number && data.threatScore >= 0 && data.threatScore <= 100 &&
+             data.timestamp == request.time;
+    }
+
+    match /alerts/{alertId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidAlert(incoming()) && isValidId(alertId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- Chat History ---
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['userId', 'role', 'content', 'timestamp']) &&
+             data.keys().hasOnly(['userId', 'role', 'content', 'mode', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.role in ['user', 'model', 'assistant'] &&
+             data.content is string && data.content.size() <= 65536 &&
+             data.timestamp == request.time;
+    }
+
+    match /chatHistory/{messageId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidChatMessage(incoming()) && isValidId(messageId) && userExists();
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // --- Training Progress ---
+    function isValidProgress(data) {
+      return data.keys().hasAll(['userId', 'score', 'completedModules', 'badges', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'score', 'completedModules', 'badges', 'createdAt', 'updatedAt']) &&
+             data.userId == request.auth.uid &&
+             data.score is number && data.score >= 0 &&
+             data.completedModules is list &&
+             data.badges is list;
+    }
+
+    match /trainingProgress/{progressId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidProgress(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isValidId(progressId) && userExists();
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidProgress(incoming()) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

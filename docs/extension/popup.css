@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+
+:root {
+    --neon-green: #39FF14;
+    --neon-red: #ff3131;
+    --neon-amber: #ffb100;
+    --cyber-black: #050505;
+}
+
+body {
+    width: 320px;
+    margin: 0;
+    background-color: var(--cyber-black);
+    color: white;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid rgba(57, 255, 20, 0.1);
+}
+
+.container {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(57, 255, 20, 0.2);
+    padding-bottom: 8px;
+}
+
+.logo {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--neon-green);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--neon-green);
+    border-radius: 50%;
+}
+
+.url-badge {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    font-size: 9px;
+    opacity: 0.6;
+    word-break: break-all;
+}
+
+.primary-btn {
+    width: 100%;
+    background: var(--neon-green);
+    color: black;
+    border: none;
+    padding: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+}
+
+.results-panel {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px;
+}
+
+.score-container {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.score {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.score-label {
+    font-size: 7px;
+    opacity: 0.4;
+    letter-spacing: 1px;
+}
+
+.verdict {
+    font-size: 10px;
+    text-align: center;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+}
+
+.label { opacity: 0.4; }
+.value { font-weight: 700; }
+
+#settings-view {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#settings-view input {
+    background: black;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 9px;
+}
+
+.secondary-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 9px;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+footer button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: inherit;
+    font-size: 7px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.hidden { display: none; }
+.danger { color: var(--neon-red); }
+.warning { color: var(--neon-amber); }
+.safe { color: var(--neon-green); }

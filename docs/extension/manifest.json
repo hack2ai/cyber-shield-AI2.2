@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Cyber Shield AI",
+  "version": "1.0",
+  "description": "Real-time phishing detection from your toolbar.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

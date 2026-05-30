@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <span class="shield-icon">🛡️</span>
+                <span class="logo">CYBER SHIELD LIVE</span>
+            </div>
+            <div id="connection-status" class="status-indicator safe" title="INTELLIGENCE_NODE_SYNCED"></div>
+        </header>
+
+        <main id="main-view">
+            <!-- Radar Scanner Screen -->
+            <div class="radar-box">
+                <div class="radar-scan"></div>
+                <div class="radar-grid"></div>
+                <div id="risk-display" class="risk-meter safe">
+                    <div id="risk-score" class="score">00</div>
+                    <div class="score-label">THREAT_INDEX</div>
+                </div>
+            </div>
+
+            <!-- Target URL -->
+            <div class="url-badge" id="current-url" title="Detecting active vector...">Detecting tab...</div>
+            
+            <button id="scan-btn" class="primary-btn">
+                <span class="btn-text">SCAN_ACTIVE_TAB</span>
+            </button>
+
+            <!-- Results Metrics -->
+            <div id="results-panel" class="hidden">
+                <div id="verdict" class="verdict safe">SYSTEMS_INTEG_OK</div>
+                
+                <div class="details">
+                    <div class="detail-item">
+                        <span class="label">VISUAL_BRAND_MIMIC:</span>
+                        <span id="brand-status" class="value safe">NONE</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">SSL_AUTHENTICITY:</span>
+                        <span id="ssl-status" class="value safe">VALIDATED</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">DOMAIN_REPUTATION:</span>
+                        <span id="tld-status" class="value safe">NEUTRAL</span>
+                    </div>
+                </div>
+
+                <!-- Timeline Audit Log -->
+                <div class="timeline-box">
+                    <div class="timeline-header">SCAN_TIMELINE</div>
+                    <div class="timeline-steps" id="timeline-steps">
+                        <div class="step" id="step-dns">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">DNS Record Integrity</span>
+                        </div>
+                        <div class="step" id="step-ssl">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">SSL Cryptographic Handshake</span>
+                        </div>
+                        <div class="step" id="step-gemini">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">Gemini Page Layout Vision scan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions Section -->
+            <div class="actions-panel">
+                <button id="export-logs-btn" class="action-btn" title="Export Threat Logs">EXPORT_LOGS</button>
+                <button id="sync-firebase-btn" class="action-btn" title="Sync with Firebase">SYNC_CLOUD</button>
+            </div>
+        </main>
+
+        <div id="settings-view" class="hidden">
+            <div class="settings-header">SYSTEM_SETTINGS</div>
+            <div class="field-group">
+                <label>API_GATEWAY_URL</label>
+                <input type="text" id="api-url" placeholder="http://localhost:3000">
+            </div>
+            <div class="field-group">
+                <label>FIREBASE_SYNC_KEY</label>
+                <input type="password" id="sync-key" placeholder="Enter Firebase ID Code">
+            </div>
+            <button id="save-settings" class="secondary-btn">SAVE_CONFIG</button>
+        </div>
+
+        <footer>
+            <button id="toggle-settings">CONFIG_SYSTEM</button>
+            <span id="version">V1.1.0</span>
+        </footer>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
