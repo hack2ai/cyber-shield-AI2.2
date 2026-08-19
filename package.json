@@ -2,15 +2,18 @@
   "name": "cyber-shield-ai2.2",
   "private": true,
   "version": "1.0.0",
+  "description": "AI-assisted phishing and threat-intelligence platform for defensive URL and domain analysis.",
   "type": "module",
   "scripts": {
     "dev": "npx tsx server.ts",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:rules": "vitest run firestore.rules.test.ts",
+    "test:security": "vitest run server/analysis server/security",
     "build": "vite build && npx esbuild server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:express --external:@google/generative-ai --external:dotenv --external:vite --external:puppeteer",
     "start": "node dist/server.js",
     "preview": "vite preview",
-    "test:rules": "vitest run firestore.rules.test.ts",
-    "check": "npm run typecheck && npm run test:rules && npm run build"
+    "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.0.1",
