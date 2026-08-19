@@ -26,15 +26,26 @@ interface ScanReport {
   createdAt: any;
 }
 
+function isMockSessionUser(user: { uid: string } | null | undefined) {
+  return !!user && (
+    user.uid === 'mock-analyst-1337' ||
+    user.uid.startsWith('mock-user-')
+  );
+}
+
 export function ScanHistory({ onSelect }: { onSelect: (report: any) => void }) {
   const { user } = useAuth();
   const [reports, setReports] = useState<ScanReport[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setReports([]);
+      setLoading(false);
+      return;
+    }
 
-    if (user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const loadMockReports = () => {
         const localReports = localStorage.getItem('cyber_shield_mock_scan_reports');
         if (localReports) {
@@ -116,6 +127,7 @@ export function ScanHistory({ onSelect }: { onSelect: (report: any) => void }) {
       setReports(data);
       setLoading(false);
     }, (error) => {
+      setLoading(false);
       handleFirestoreError(error, OperationType.LIST, 'scanReports');
     });
 
@@ -124,7 +136,7 @@ export function ScanHistory({ onSelect }: { onSelect: (report: any) => void }) {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (user && user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const localReports = localStorage.getItem('cyber_shield_mock_scan_reports');
       const parsed = localReports ? JSON.parse(localReports) : [];
       const updated = parsed.filter((r: any) => r.id !== id);
