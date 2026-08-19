@@ -1,48 +1,142 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Cyber Shield AI
 
-# Run and deploy your AI Studio app
+AI-assisted phishing and threat-intelligence platform for URL, domain, certificate, and file analysis.
 
-This contains everything you need to run your app locally.
+Cyber Shield AI combines deterministic security heuristics with live network intelligence and Gemini-assisted analysis. It can run with the full Express analysis service or degrade gracefully to browser-side heuristics when deployed as a static site.
 
-View your app in AI Studio: https://ai.studio/apps/d708adea-0ac2-46e6-98ae-db015f5d5c43
+## What it does
 
-## Run Locally
+- URL and domain threat analysis
+- DNS, TLS certificate, WHOIS, and redirect intelligence
+- Suspicious TLD and URL-shortener detection
+- Entropy and structural URL heuristics
+- VirusTotal enrichment when configured
+- Gemini-assisted threat explanation and scoring
+- File and QR-code analysis workflows
+- Firebase Authentication and Firestore-backed security data
+- Browser-extension integration
+- Admin controls, scan history, and security telemetry
+- Firestore security-rule tests
 
-**Prerequisites:**  Node.js
+## Architecture
 
+```text
+React + Vite UI
+      |
+      +---- Browser heuristics (static fallback)
+      |
+      +---- Express analysis API
+                 |
+                 +---- DNS / TLS / WHOIS
+                 +---- VirusTotal
+                 +---- Gemini
+                 +---- Puppeteer / redirect inspection
+                 +---- Firebase Admin / Firestore
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in `.env.local` to your Gemini API key
-3. Run the app:
-   `npm run dev`
+The UI is separated conceptually from privileged server-side intelligence. API keys and server credentials must remain on the server and must never be embedded in the browser bundle.
 
-## Build for Production
+## Stack
 
-To compile the React application and build the static assets for production, run:
+- Frontend: React 18, TypeScript, Vite, Tailwind CSS, Recharts, Motion
+- Backend: Node.js, Express, TypeScript
+- Security intelligence: DNS, TLS, WHOIS, VirusTotal, Puppeteer
+- AI: Google Gemini
+- Data/auth: Firebase, Firestore
+- Testing: Vitest + Firebase Rules Unit Testing
+
+## Requirements
+
+- Node.js 20+
+- npm 10+
+- Firebase project for authenticated/server-backed deployments
+- Gemini API key for AI analysis
+- VirusTotal API key for optional enrichment
+
+## Local development
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Then open `http://localhost:3000`.
+
+## Environment variables
+
+See `.env.example`. Keep secrets only in local environment files or your deployment secret manager.
+
+```dotenv
+GEMINI_API_KEY=
+VIRUSTOTAL_API_KEY=
+LYZR_API_KEY=
+```
+
+Do not commit `.env.local`, API keys, Firebase service-account credentials, or runtime debug logs.
+
+## Production build
+
 ```bash
 npm run build
+npm start
 ```
-This command compiles the source code into the `docs/` folder (configured via `vite.config.ts`), preparing it for both static web servers (like GitHub Pages) and Express production server deployments.
 
-## Deploying on GitHub Pages
+The Vite frontend is emitted to `docs/` for the current GitHub Pages deployment model, while the Express server bundle is emitted to `dist/server.js`.
 
-The project is pre-configured to be served dynamically from GitHub Pages via the `/docs` directory on the `main` branch. 
+## Security notes
 
-To enable this on GitHub:
-1. Open your repository on GitHub: `https://github.com/hack2ai/cyber-shield-AI2.2`.
-2. Navigate to **Settings** (tab at the top menu).
-3. Under the left-hand sidebar, select **Pages**.
-4. In the **Build and deployment** section:
-   - Under **Source**, choose **Deploy from a branch**.
-   - Under **Branch**, select `main` (or your active branch) and change the folder from `/ (root)` to `/docs`.
-   - Click **Save**.
-5. Give GitHub Actions/Pages a minute to build and refresh. The application will be live and functional without any blank screen!
+This project is a defensive security-analysis tool. Results are heuristic and enrichment-driven, not a guarantee that a resource is safe or malicious. Never use a single score as the sole basis for a security decision.
 
-## Dual-Core Threat Intelligence Architecture
+For production use, configure strict CORS origins, secure headers, rate limiting, request validation, structured logging, secret management, and least-privilege Firebase IAM.
 
-To provide a seamless user experience, Cyber Shield AI uses a **Dual-Core Threat Intelligence** execution engine:
-1. **Server AI Mode (Local / Express Node Server):** Full live DNS lookups, TLS handshake certification parsing, WHOIS domain age extraction, and live Gemini AI threat assessment scoring.
-2. **Static Heuristics Fallback (GitHub Pages Hosting):** Since static CDNs cannot execute server-side code, a client-side graceful heuristic parser automatically activates if the Express API is unreachable. It calculates entropy, validates IP formats, identifies high-risk Top-Level Domains (TLDs), detects URL shorteners, and formats realistic technical summaries dynamically in the browser, ensuring a zero-error user experience!
+## Testing
+
+```bash
+npm run test:rules
+npm run typecheck
+npm run lint
+```
+
+## Project structure
+
+```text
+.
+├── src/                  # React application
+│   ├── components/       # Reusable UI components
+│   ├── lib/              # Client-side service integrations
+│   ├── utils/            # Shared client utilities
+│   └── App.tsx           # Current application shell
+├── extension/            # Browser extension
+├── docs/                 # GitHub Pages build output
+├── assets/               # Static project assets
+├── firestore.rules       # Firestore authorization rules
+├── firestore.rules.test.ts
+├── server.ts             # Express analysis service
+├── vite.config.ts
+└── package.json
+```
+
+## Deployment
+
+### GitHub Pages
+
+Build the project and publish the `docs/` directory from the `main` branch, as configured in `vite.config.ts`.
+
+### Full server deployment
+
+Deploy the Node.js server to a platform that supports long-running Express processes and configure required environment variables in the platform's secret manager.
+
+## Roadmap
+
+- Modularize the analysis engine into typed services
+- Add API request schemas and centralized error handling
+- Add automated CI for type-checking, linting, tests, and builds
+- Add API/integration tests for threat-analysis endpoints
+- Add security dependency scanning and secret scanning
+- Improve observability with structured security events
+- Add calibrated scoring and explainable finding weights
+
+## License
+
+Apache-2.0
