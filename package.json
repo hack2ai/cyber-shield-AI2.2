@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "npx tsx server.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude firestore.rules.test.ts",
     "test:rules": "vitest run firestore.rules.test.ts",
     "test:security": "vitest run server/analysis server/security",
     "audit": "npm audit --audit-level=high",
