@@ -15,7 +15,7 @@ export function createApp() {
   app.use(securityHeaders);
   app.use(rateLimit);
   app.use(cors({
-    origin: env.allowedOrigins.length > 0 ? env.allowedOrigins : true,
+    origin: env.allowedOrigins.length > 0 ? env.allowedOrigins : false,
   }));
   app.use(express.json({ limit: '1mb' }));
 
