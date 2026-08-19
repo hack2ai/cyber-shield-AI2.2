@@ -4,10 +4,23 @@ type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 60;
+const CLEANUP_INTERVAL_MS = 5 * 60_000;
+let lastCleanupAt = 0;
+
+function cleanupExpiredBuckets(now: number): void {
+  if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
+  lastCleanupAt = now;
+
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+}
 
 /** Small dependency-free baseline limiter. Use a shared/proxied limiter for multi-instance production deployments. */
 export const rateLimit: RequestHandler = (req, res, next) => {
   const now = Date.now();
+  cleanupExpiredBuckets(now);
+
   const key = req.ip || req.socket.remoteAddress || 'unknown';
   const current = buckets.get(key);
 
