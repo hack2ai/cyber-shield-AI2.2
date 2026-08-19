@@ -4,7 +4,7 @@ import { extractUrlFeatures, findingsFromUrlFeatures } from './features.js';
 
 describe('URL feature extraction', () => {
   it('detects common suspicious URL indicators', () => {
-    const url = new URL('http://xn--e1afmkfd.xn--p1ai/login@account.example.zip');
+    const url = new URL('http://xn--e1afmkfd.example.zip/login@account');
     const features = extractUrlFeatures(url);
 
     expect(features.isHttps).toBe(false);
