@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { apiRouter } from './api/index.js';
+import { env } from './config/env.js';
 import { rateLimit, securityHeaders } from './security/index.js';
 
 /**
@@ -13,7 +14,9 @@ export function createApp() {
   app.disable('x-powered-by');
   app.use(securityHeaders);
   app.use(rateLimit);
-  app.use(cors());
+  app.use(cors({
+    origin: env.allowedOrigins.length > 0 ? env.allowedOrigins : true,
+  }));
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/health', (_req, res) => {
