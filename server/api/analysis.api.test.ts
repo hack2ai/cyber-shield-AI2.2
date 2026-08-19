@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createServer } from 'node:http';
 
-const mockAnalyzeUrlEnriched = vi.fn();
-const mockValidateExternalUrl = vi.fn();
+const { mockAnalyzeUrlEnriched, mockValidateExternalUrl } = vi.hoisted(() => ({
+  mockAnalyzeUrlEnriched: vi.fn(),
+  mockValidateExternalUrl: vi.fn(),
+}));
 
 vi.mock('../analysis/enriched-analyzer.js', () => ({
   analyzeUrlEnriched: mockAnalyzeUrlEnriched,
