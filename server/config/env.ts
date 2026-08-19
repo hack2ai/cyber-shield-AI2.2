@@ -20,10 +20,19 @@ if (!['development', 'test', 'production'].includes(nodeEnv)) {
   throw new Error('NODE_ENV must be development, test, or production');
 }
 
+const allowedOrigins = optional('ALLOWED_ORIGINS')
+  ?.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean) ?? [];
+
+if (nodeEnv === 'production' && allowedOrigins.length === 0) {
+  throw new Error('ALLOWED_ORIGINS must be configured in production');
+}
+
 export const env = Object.freeze({
   nodeEnv,
   port: positiveInt('PORT', 3000),
-  allowedOrigins: optional('ALLOWED_ORIGINS')?.split(',').map((origin) => origin.trim()).filter(Boolean) ?? [],
+  allowedOrigins,
   geminiApiKey: optional('GEMINI_API_KEY'),
   virusTotalApiKey: optional('VIRUSTOTAL_API_KEY'),
   abuseIpDbApiKey: optional('ABUSEIPDB_API_KEY'),
