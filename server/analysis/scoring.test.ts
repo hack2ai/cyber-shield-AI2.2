@@ -24,6 +24,14 @@ describe('URL feature extraction', () => {
   });
 });
 
+const finding = (id: string, weight: number, severity: 1 | 2 | 3 | 4 | 5 = 2) => ({
+  id,
+  label: id,
+  severity,
+  weight,
+  description: 'test finding',
+});
+
 describe('risk scoring', () => {
   it('returns LOW for no findings', () => {
     const result = calculateRisk([]);
@@ -41,14 +49,50 @@ describe('risk scoring', () => {
     expect(result.findings).toEqual(findings);
   });
 
-  it('caps the score at 100', () => {
-    const findings = Array.from({ length: 20 }, (_, index) => ({
-      id: `finding-${index}`,
-      label: 'Synthetic finding',
-      severity: 5 as const,
-      weight: 20,
-      description: 'Test finding',
-    }));
+  it('does not let duplicate finding IDs inflate the score', () => {
+    const result = calculateRisk([
+      finding('duplicate', 20, 4),
+      finding('duplicate', 20, 4),
+    ]);
+
+    expect(result.findings).toHaveLength(1);
+    expect(result.score).toBeLessThan(50);
+  });
+
+  it('caps an individual finding weight at 40', () => {
+    const result = calculateRisk([finding('oversized', 500, 5)]);
+
+    expect(result.score).toBeLessThanOrEqual(50);
+    expect(result.findings[0].weight).toBe(40);
+  });
+
+  it('adds controlled corroboration for multiple high-severity findings', () => {
+    const result = calculateRisk([
+      finding('high-a', 20, 4),
+      finding('high-b', 20, 4),
+      finding('low-a', 5, 2),
+    ]);
+
+    expect(result.score).toBeGreaterThan(45);
+    expect(result.confidence).toBeGreaterThan(45);
+  });
+
+  it('reaches CRITICAL only with sufficiently strong combined evidence', () => {
+    const findings = [
+      finding('malicious-a', 40, 5),
+      finding('malicious-b', 40, 5),
+      finding('malicious-c', 40, 5),
+    ];
+
+    const result = calculateRisk(findings);
+
+    expect(result.score).toBe(100);
+    expect(result.level).toBe('CRITICAL');
+    expect(result.confidence).toBeGreaterThan(70);
+  });
+
+  it('caps the final score at 100', () => {
+    const findings = Array.from({ length: 20 }, (_, index) => finding(`finding-${index}`, 40, 5));
 
     expect(calculateRisk(findings).score).toBe(100);
   });
