@@ -1,4 +1,7 @@
-import { validateExternalUrl } from '../security/index.js';
+import dns from 'node:dns/promises';
+import http from 'node:http';
+import https from 'node:https';
+import { validateExternalUrl, isBlockedIp } from '../security/index.js';
 
 export interface RedirectHop {
   url: string;
@@ -19,6 +22,52 @@ export interface RedirectAnalysisResult {
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_REDIRECTS = 5;
 
+async function resolvePinnedAddress(hostname: string): Promise<{ address: string; family: 4 | 6 }> {
+  const records = await dns.lookup(hostname, { all: true, verbatim: true });
+  const safe = records.find((record) => !isBlockedIp(record.address));
+  if (!safe || (safe.family !== 4 && safe.family !== 6)) {
+    throw new Error('Destination did not resolve to a public address');
+  }
+  return { address: safe.address, family: safe.family };
+}
+
+function requestHead(url: URL, ip: string, family: 4 | 6): Promise<{ status: number; location: string | null }> {
+  return new Promise((resolve, reject) => {
+    const transport = url.protocol === 'https:' ? https : http;
+    const request = transport.request({
+      protocol: url.protocol,
+      hostname: url.hostname,
+      port: url.port || undefined,
+      path: `${url.pathname}${url.search}`,
+      method: 'HEAD',
+      headers: {
+        host: url.host,
+        'user-agent': 'Cyber-Shield-AI-Security-Scanner/1.0',
+        connection: 'close',
+      },
+      lookup: (_hostname, _options, callback) => callback(null, ip, family),
+      servername: url.hostname,
+      rejectUnauthorized: true,
+    }, (response) => {
+      response.resume();
+      resolve({
+        status: response.statusCode ?? 0,
+        location: response.headers.location ?? null,
+      });
+    });
+
+    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error('Redirect analysis timed out'));
+    });
+    request.once('error', reject);
+    request.end();
+  });
+}
+
+/**
+ * Analyze redirect chains while pinning each request to a freshly resolved public IP.
+ * Redirect destinations are validated and resolved again before each subsequent hop.
+ */
 export async function analyzeRedirects(input: string | URL): Promise<RedirectAnalysisResult> {
   const original = await validateExternalUrl(input instanceof URL ? input.href : input);
   const hops: RedirectHop[] = [];
@@ -27,39 +76,23 @@ export async function analyzeRedirects(input: string | URL): Promise<RedirectAna
 
   try {
     for (let i = 0; i <= MAX_REDIRECTS; i += 1) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const pinned = await resolvePinnedAddress(current.hostname);
+      const response = await requestHead(current, pinned.address, pinned.family);
 
-      let response: Response;
-      try {
-        response = await fetch(current, {
-          method: 'HEAD',
-          redirect: 'manual',
-          signal: controller.signal,
-          headers: {
-            'user-agent': 'Cyber-Shield-AI-Security-Scanner/1.0',
-          },
-        });
-      } finally {
-        clearTimeout(timer);
-      }
-
-      const location = response.headers.get('location');
       hops.push({
         url: current.href,
         status: response.status,
-        location,
+        location: response.location,
       });
 
-      if (!location || response.status < 300 || response.status >= 400) {
+      if (!response.location || response.status < 300 || response.status >= 400) {
         break;
       }
 
-      const next = new URL(location, current.href);
-      current = await validateExternalUrl(next.href);
+      current = await validateExternalUrl(new URL(response.location, current.href).href);
     }
   } catch (error) {
-    timedOut = error instanceof DOMException && error.name === 'AbortError';
+    timedOut = error instanceof Error && error.message === 'Redirect analysis timed out';
     return {
       originalUrl: original.href,
       finalUrl: current.href,
