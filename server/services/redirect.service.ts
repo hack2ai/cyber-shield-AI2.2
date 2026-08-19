@@ -19,6 +19,13 @@ export interface RedirectAnalysisResult {
   error?: string;
 }
 
+export interface RedirectRequestResult {
+  status: number;
+  location: string | null;
+}
+
+export type RedirectRequester = (url: URL, ip: string, family: 4 | 6) => Promise<RedirectRequestResult>;
+
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_REDIRECTS = 5;
 
@@ -31,7 +38,7 @@ async function resolvePinnedAddress(hostname: string): Promise<{ address: string
   return { address: safe.address, family: safe.family };
 }
 
-function requestHead(url: URL, ip: string, family: 4 | 6): Promise<{ status: number; location: string | null }> {
+export function requestRedirectHead(url: URL, ip: string, family: 4 | 6): Promise<RedirectRequestResult> {
   return new Promise((resolve, reject) => {
     const transport = url.protocol === 'https:' ? https : http;
     const request = transport.request({
@@ -68,7 +75,10 @@ function requestHead(url: URL, ip: string, family: 4 | 6): Promise<{ status: num
  * Analyze redirect chains while pinning each request to a freshly resolved public IP.
  * Redirect destinations are validated and resolved again before each subsequent hop.
  */
-export async function analyzeRedirects(input: string | URL): Promise<RedirectAnalysisResult> {
+export async function analyzeRedirects(
+  input: string | URL,
+  request: RedirectRequester = requestRedirectHead,
+): Promise<RedirectAnalysisResult> {
   const original = await validateExternalUrl(input instanceof URL ? input.href : input);
   const hops: RedirectHop[] = [];
   let current = original;
@@ -77,7 +87,7 @@ export async function analyzeRedirects(input: string | URL): Promise<RedirectAna
   try {
     for (let i = 0; i <= MAX_REDIRECTS; i += 1) {
       const pinned = await resolvePinnedAddress(current.hostname);
-      const response = await requestHead(current, pinned.address, pinned.family);
+      const response = await request(current, pinned.address, pinned.family);
 
       hops.push({
         url: current.href,
