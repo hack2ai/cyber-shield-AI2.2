@@ -16,7 +16,7 @@ const WHOIS_TIMEOUT_MS = 10000;
 function firstString(value: unknown): string | null {
   if (typeof value === 'string' && value.trim()) return value.trim();
   if (Array.isArray(value)) {
-    const item = value.find((entry) => typeof entry === 'string' && entry.trim());
+    const item = value.find((entry) => typeof entry === 'string' && entry.trim().length > 0);
     return typeof item === 'string' ? item.trim() : null;
   }
   return null;
@@ -30,7 +30,11 @@ function firstDate(value: unknown): string | null {
 }
 
 function stringArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string' && item.trim()).map((item) => item.trim());
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => item.trim());
+  }
   const single = firstString(value);
   return single ? [single] : [];
 }
