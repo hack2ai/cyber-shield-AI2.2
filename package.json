@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "npx tsx server.ts",
+    "typecheck": "tsc --noEmit",
     "build": "vite build && npx esbuild server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:express --external:@google/generative-ai --external:dotenv --external:vite --external:puppeteer",
     "start": "node dist/server.js",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test:rules": "vitest run firestore.rules.test.ts"
+    "test:rules": "vitest run firestore.rules.test.ts",
+    "check": "npm run typecheck && npm run test:rules && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.0.1",
