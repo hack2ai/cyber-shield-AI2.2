@@ -12,5 +12,6 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": ["node"]
   },
-  "include": ["src/**/*", "server.ts", "firestore.rules.test.ts"]
+  "include": ["src/**/*", "server.ts", "server/**/*", "firestore.rules.test.ts"],
+  "exclude": ["node_modules", "dist", "docs"]
 }
