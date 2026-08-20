@@ -458,20 +458,32 @@ describe('Firestore Security Rules', () => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
+
     await assertSucceeds(setDoc(progressRef, mockProgress));
 
     // Read progress
     await assertSucceeds(getDoc(progressRef));
 
-    // Update progress
+    // Read back the server-resolved document so we can preserve the
+    // original createdAt value during the update.
+    const createdSnapshot = await getDoc(progressRef);
+    const createdData = createdSnapshot.data();
+
+    if (!createdData?.createdAt) {
+      throw new Error('Training progress createdAt was not resolved');
+    }
+
+    // Update progress using the resolved createdAt timestamp.
     const updatedProgress = {
-      ...mockProgress,
+      userId: 'alice',
       score: 200,
       completedModules: ['lessons', 'quiz'],
       badges: ['first_badge', 'quiz_master'],
+      createdAt: createdData.createdAt,
       updatedAt: serverTimestamp()
     };
-    await assertSucceeds(setDoc(progressRef, updatedProgress));
+
+    await assertSucceeds(updateDoc(progressRef, updatedProgress));
   });
 
   it('Training Progress Identity Spoofing: should deny creating or updating training progress with Bob\'s userId', async () => {
