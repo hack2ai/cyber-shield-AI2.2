@@ -71,6 +71,13 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function isMockSessionUser(user: { uid: string } | null | undefined) {
+  return !!user && (
+    user.uid === 'mock-analyst-1337' ||
+    user.uid.startsWith('mock-user-')
+  );
+}
+
 function getDomainAge(creationDate: string | undefined) {
   if (!creationDate) return null;
   try {
@@ -349,7 +356,7 @@ function KeywordMonitor() {
       return;
     }
 
-    if (user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const loadMockSubs = () => {
         const localSubs = localStorage.getItem('cyber_shield_mock_subscriptions');
         if (localSubs) {
@@ -397,7 +404,7 @@ function KeywordMonitor() {
 
     setIsAdding(true);
     try {
-      if (user.uid === 'mock-analyst-1337') {
+      if (isMockSessionUser(user)) {
         const localSubs = localStorage.getItem('cyber_shield_mock_subscriptions');
         const parsed = localSubs ? JSON.parse(localSubs) : [];
         const keywordVal = newKeyword.trim();
@@ -444,7 +451,7 @@ function KeywordMonitor() {
 
   const handleDeleteSubscription = async (id: string) => {
     try {
-      if (user && user.uid === 'mock-analyst-1337') {
+      if (user && isMockSessionUser(user)) {
         const localSubs = localStorage.getItem('cyber_shield_mock_subscriptions');
         const parsed = localSubs ? JSON.parse(localSubs) : [];
         const updated = parsed.filter((s: any) => s.id !== id);
@@ -537,7 +544,7 @@ function AlertNotifications() {
       return;
     }
 
-    if (user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const loadMockAlerts = () => {
         const localAlerts = localStorage.getItem('cyber_shield_mock_alerts');
         if (localAlerts) {
@@ -615,7 +622,7 @@ function AlertNotifications() {
               <button
                 onClick={async () => {
                   try {
-                    if (user.uid === 'mock-analyst-1337') {
+                    if (isMockSessionUser(user)) {
                       const localAlerts = localStorage.getItem('cyber_shield_mock_alerts');
                       const parsed = localAlerts ? JSON.parse(localAlerts) : [];
                       const updated = parsed.filter((a: any) => a.id !== alert.id);
@@ -1509,7 +1516,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    if (user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const loadLocalHistory = () => {
         const local = localStorage.getItem('cyber_shield_mock_breach_reports');
         setBreachHistory(local ? JSON.parse(local) : []);
@@ -1568,7 +1575,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    if (user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const loadLocalHistory = () => {
         const local = localStorage.getItem('cyber_shield_mock_email_header_reports');
         setEmailHeaderHistory(local ? JSON.parse(local) : []);
@@ -1651,7 +1658,7 @@ export default function App() {
         createdAt: serverTimestamp()
       };
 
-      if (user && user.uid !== 'mock-analyst-1337') {
+      if (user && !isMockSessionUser(user)) {
         try {
           addLog("ARCHIVING_BREACH_INTELLIGENCE_IN_CLOUD_STORAGE...");
           await addDoc(collection(db, 'breachReports'), newReport);
@@ -1733,7 +1740,7 @@ export default function App() {
         createdAt: serverTimestamp()
       };
 
-      if (user && user.uid !== 'mock-analyst-1337') {
+      if (user && !isMockSessionUser(user)) {
         try {
           addLog("ARCHIVING_EMAIL_HEADER_AUDIT_IN_CLOUD_STORAGE...");
           await addDoc(collection(db, 'emailHeaderReports'), newReport);
@@ -1912,7 +1919,7 @@ export default function App() {
       return;
     }
 
-    if (user.uid === 'mock-analyst-1337') {
+    if (isMockSessionUser(user)) {
       const loadMockHistory = () => {
         const data = localStorage.getItem('cyber_shield_mock_file_reports');
         if (data) {
@@ -2071,7 +2078,7 @@ export default function App() {
 
           if (user) {
             try {
-              if (user.uid !== 'mock-analyst-1337') {
+              if (!isMockSessionUser(user)) {
                 await addDoc(collection(db, 'fileScanReports'), {
                   userId: user.uid,
                   fileName: scanData.fileName,
@@ -2552,7 +2559,7 @@ export default function App() {
       // Save to Firestore if user is logged in
       if (user) {
         try {
-          if (user.uid === 'mock-analyst-1337') {
+          if (isMockSessionUser(user)) {
             addLog("ARCHIVING_INTEL_REPORT_IN_LOCAL_SESSION...");
             await wait(300);
 
@@ -2731,7 +2738,7 @@ export default function App() {
               <div className="text-right">
                 <p className="text-[10px] text-[#39FF14]/30 uppercase">Operator</p>
                 <p className="text-xs font-bold truncate max-w-[120px]">{user.displayName || user.email}</p>
-                {user.uid === 'mock-analyst-1337' ? (
+                {isMockSessionUser(user) ? (
                   <span className="text-[7px] text-amber-500 font-black uppercase block animate-pulse">LOCAL_GUEST_MODE</span>
                 ) : isAdmin ? (
                   <span className="text-[7px] text-red-500 font-black uppercase block">Level_10_Admin</span>
@@ -3134,7 +3141,7 @@ export default function App() {
                             e.stopPropagation();
                             try {
                               if (report.id) {
-                                if (user?.uid !== 'mock-analyst-1337') {
+                                if (!isMockSessionUser(user)) {
                                   await deleteDoc(doc(db, 'fileScanReports', report.id));
                                 } else {
                                   const mockHistory = localStorage.getItem('cyber_shield_mock_file_reports');
@@ -3245,7 +3252,7 @@ export default function App() {
                             e.stopPropagation();
                             try {
                               if (report.id) {
-                                if (user?.uid !== 'mock-analyst-1337') {
+                                if (!isMockSessionUser(user)) {
                                   await deleteDoc(doc(db, 'breachReports', report.id));
                                 } else {
                                   const mockHistory = localStorage.getItem('cyber_shield_mock_breach_reports');
@@ -3322,7 +3329,7 @@ export default function App() {
                             e.stopPropagation();
                             try {
                               if (report.id) {
-                                if (user?.uid !== 'mock-analyst-1337') {
+                                if (!isMockSessionUser(user)) {
                                   await deleteDoc(doc(db, 'emailHeaderReports', report.id));
                                 } else {
                                   const mockHistory = localStorage.getItem('cyber_shield_mock_email_header_reports');

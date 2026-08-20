@@ -663,7 +663,7 @@ async function startServer() {
         }
         
         const client = new GoogleGenerativeAI(apiKey);
-        const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = client.getGenerativeModel({ model: "gemini-3.6-flash" });
         
         const contents: any[] = [];
         let prompt = `Perform security threat analysis on ${type}: ${target}. Technical data: DNS=${JSON.stringify(dnsInfo)}, SSL=${JSON.stringify(sslInfo)}, WHOIS=${JSON.stringify(whoisInfo)}, Heuristics=${JSON.stringify(heuristics)}, VirusTotal=${JSON.stringify(vtData)}, PhishTank=${JSON.stringify(phishTankData)}, AbuseIPDB=${JSON.stringify(abuseData)}.`;
@@ -752,7 +752,7 @@ async function startServer() {
         }
 
         const client = new GoogleGenerativeAI(apiKey);
-        const model = client.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = client.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const contents: any[] = [];
         let prompt = `Perform cybersecurity threat and malware analysis on the following uploaded file metadata and technical features.
@@ -917,7 +917,7 @@ Return ONLY the JSON block: { "threatScore": 95, ... }`;
         },
       ];
       const model = client.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.6-flash",
         systemInstruction: "You are ThreatGPT, a futuristic, advanced AI cybersecurity assistant integrated into the Cyber Shield AI security dashboard. Your goal is to guide operators through security threats, answer queries, explain vulnerabilities, and evaluate cyber risks. Always structure your responses clearly. When explaining a threat or answering, try to include: 1. THREAT EXPLANATION, 2. RISK LEVEL (Safe, Low, Medium, High, or Critical), 3. PREVENTION METHODS, 4. SECURITY BEST PRACTICES, and 5. REAL-WORLD EXAMPLES if applicable. Use clean, cyber-themed markdown (e.g. lists, bold terms) and keep a technical but helpful operator tone. You are permitted and expected to fully discuss ethical hacking, vulnerabilities, payloads, cybersecurity, malware analysis, and defensive protocols. Always answer queries directly and constructively from a defensive/educational security analyst perspective, and never refuse queries related to cyber threat mechanisms or ethical hacking operations.",
         safetySettings
       });
@@ -990,7 +990,7 @@ Return ONLY the JSON block: { "threatScore": 95, ... }`;
 
       const client = new GoogleGenerativeAI(apiKey);
       const model = client.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.6-flash",
         systemInstruction: "You are the Cyber Shield AI Threat Analytics Engine. Your role is to analyze aggregated security metrics (scans, threat categories, attack vectors, domains) and output structured JSON containing: 1. insights (an array of 3 critical threat intelligence findings), 2. recommendations (an array of 3 critical preventive action steps), 3. predictions (an array of 7 integers representing the forecasted number of daily attacks/threats for the next 7 days, based on recent trends), and 4. threatScoreForecast (an integer from 0-100 indicating predicted threat severity index). Respond ONLY with valid, raw JSON. Do not include markdown code block formatting (like ```json) or any explanation text."
       });
 
@@ -1356,7 +1356,7 @@ Return ONLY the JSON block: { "threatScore": 95, ... }`;
       if (apiKey && apiKey !== 'YOUR_API_KEY_HERE') {
         const client = new GoogleGenerativeAI(apiKey);
         const model = client.getGenerativeModel({
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           systemInstruction: "You are the Cyber Shield AI Email Header Auditor. Analyze the raw email headers and parsed authentication attributes (SPF, DKIM, DMARC, Originating IP, Hop Trace) and return a structured JSON response containing: 1. threatScore (an integer 0-100 indicating risk), 2. classification (Safe, Suspicious, Phishing, or Malicious), 3. explanation (markdown text explaining the risk model analysis findings), 4. spoofingIndicators (an array of strings showing potential spoofing anomalies, e.g. domain mismatch, suspicious intermediate relay nodes), and 5. recommendations (an array of 3 critical mitigation action steps). Respond ONLY with valid, raw JSON. Do not include markdown code block formatting (like ```json) or any explanation text."
         });
 
@@ -1532,7 +1532,7 @@ Return ONLY the JSON block: { "threatScore": 95, ... }`;
       if (apiKey && apiKey !== 'YOUR_API_KEY_HERE') {
         const client = new GoogleGenerativeAI(apiKey);
         const model = client.getGenerativeModel({
-          model: "gemini-1.5-flash",
+          model: "gemini-3.6-flash",
           systemInstruction: "You are the Cyber Shield AI Education Auditor. Generate a list of exactly 5 unique multiple choice questions on the requested cybersecurity topic. Each question must have 4 options, a correctAnswerIndex (integer 0-3), and a brief explanation in markdown. Return ONLY a valid JSON array of objects. Do not include markdown code block formatting (like ```json) or any explanation text."
         });
 
