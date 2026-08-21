@@ -26,7 +26,13 @@ interface MetricStats {
 
 export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps) {
   const currentUserId = user?.uid || 'guest-operator';
-  const isGuestOrMock = currentUserId === 'mock-analyst-1337' || currentUserId === 'guest-operator';
+  const isLocalBrowser = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const isGuestOrMock =
+    isLocalBrowser ||
+    currentUserId === 'mock-analyst-1337' ||
+    currentUserId === 'guest-operator' ||
+    currentUserId.startsWith('mock-user-');
 
   const [scanReports, setScanReports] = useState<any[]>([]);
   const [fileScanReports, setFileScanReports] = useState<any[]>([]);
@@ -65,19 +71,12 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
       const loadLocalHistory = () => {
         // Load URL scan reports
         const localScans = localStorage.getItem('cyber_shield_mock_scan_reports');
-        const parsedScans = localScans ? JSON.parse(localScans) : [
-          { classification: "Phishing", target: "http://paypal-verification-secure.com", threatScore: 84, createdAt: new Date(Date.now() - 3600000).toISOString() },
-          { classification: "Safe", target: "8.8.8.8", threatScore: 0, createdAt: new Date(Date.now() - 7200000).toISOString() },
-          { classification: "Malicious", target: "http://voidhex-botnet-c2.ru", threatScore: 97, createdAt: new Date(Date.now() - 14400000).toISOString() }
-        ];
+        const parsedScans = localScans ? JSON.parse(localScans) : [];
         setScanReports(parsedScans);
 
         // Load File scan reports
         const localFileScans = localStorage.getItem('cyber_shield_mock_file_scan_reports');
-        const parsedFileScans = localFileScans ? JSON.parse(localFileScans) : [
-          { classification: "Malicious", fileName: "payload.exe", fileSize: 1048576, fileType: "exe", threatScore: 95, createdAt: new Date(Date.now() - 4000000).toISOString() },
-          { classification: "Suspicious", fileName: "patch.zip", fileSize: 524288, fileType: "zip", threatScore: 68, createdAt: new Date(Date.now() - 8000000).toISOString() }
-        ];
+        const parsedFileScans = localFileScans ? JSON.parse(localFileScans) : [];
         setFileScanReports(parsedFileScans);
       };
 
@@ -120,12 +119,10 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
     const allReports = [...scanReports, ...fileScanReports];
     const total = allReports.length;
 
-    // Seed default counts if empty to ensure stunning visuals
-    const seedOffset = total === 0 ? 12 : 0;
-    const malicious = allReports.filter(r => r.classification === 'Malicious' || r.classification === 'Phishing').length + (total === 0 ? 6 : 0);
-    const suspicious = allReports.filter(r => r.classification === 'Suspicious').length + (total === 0 ? 3 : 0);
-    const safe = allReports.filter(r => r.classification === 'Safe').length + (total === 0 ? 7 : 0);
-    const displayTotal = total + (total === 0 ? 16 : 0);
+    const malicious = allReports.filter(r => r.classification === 'Malicious' || r.classification === 'Phishing').length;
+    const suspicious = allReports.filter(r => r.classification === 'Suspicious').length;
+    const safe = allReports.filter(r => r.classification === 'Safe').length;
+    const displayTotal = total;
 
     const integrity = displayTotal > 0 ? Math.round((safe / displayTotal) * 100) : 100;
     const phishingRatio = displayTotal > 0 ? Math.round(((malicious + suspicious) / displayTotal) * 100) : 0;
