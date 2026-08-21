@@ -32,12 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const activateMockSession = (email: string) => {
     const cleanEmail = email.trim().toLowerCase();
-    const uid = `mock-user-${cleanEmail.replace(/[^a-z0-9]/g, '-')}`;
+    const uid = 'mock-analyst-1337';
     const displayName = cleanEmail.split('@')[0];
     const nameFormatted = displayName.charAt(0).toUpperCase() + displayName.slice(1) + " (Simulated)";
     
     const mockUser = {
-      uid: uid,
+      uid,
       email: cleanEmail,
       displayName: nameFormatted,
       isAnonymous: false,
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } as unknown as User;
     setUser(mockUser);
     setProfile({
-      uid: uid,
+      uid,
       email: cleanEmail,
       displayName: nameFormatted,
       role: 'user',
@@ -133,7 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           console.error("Failed to load user profile:", error);
-          // Fallback to local profile to prevent blocking login
           setProfile({
             uid: currentUser.uid,
             email: currentUser.email,
