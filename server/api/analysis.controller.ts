@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { validateAnalyzeUrlRequest } from './schemas/analysis.js';
 import { analysisError, analysisSuccess } from './responses/analysis.js';
 import { analyzeUrlEnriched } from '../analysis/enriched-analyzer.js';
+import { addAnalysis } from '../analysis/store.js';
 import { validateExternalUrl } from '../security/index.js';
 
 export async function analyzeUrlController(req: Request, res: Response): Promise<void> {
@@ -9,6 +10,10 @@ export async function analyzeUrlController(req: Request, res: Response): Promise
     const { url } = validateAnalyzeUrlRequest(req.body);
     const safeUrl = await validateExternalUrl(url);
     const result = await analyzeUrlEnriched(safeUrl);
+
+    // Keep the latest analysis in the in-memory store so the dashboard
+    // endpoint can expose aggregate metrics for this running process.
+    addAnalysis(result);
 
     res.status(200).json(analysisSuccess(result));
   } catch (error) {
