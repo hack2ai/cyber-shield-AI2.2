@@ -402,7 +402,7 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                 <PieChart>
                   <Pie
-                    data={getCategoryData()}
+                    data={getCategoryData().filter((entry) => entry.value > 0)}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
