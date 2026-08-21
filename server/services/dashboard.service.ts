@@ -1,143 +1,55 @@
-import { getAllAnalyses } from "../analysis/store";
-
+import { getAllAnalyses } from '../analysis/store.js';
 
 export interface DashboardStats {
-
-    totalScans:number;
-
-    safeUrls:number;
-
-    maliciousUrls:number;
-
-    averageRisk:number;
-
-    threatDistribution:{
-        name:string;
-        value:number;
-    }[];
-
-    recentScans:{
-        url:string;
-        status:string;
-        score:number;
-        date:string;
-    }[];
-
+  totalScans: number;
+  safeUrls: number;
+  maliciousUrls: number;
+  averageRisk: number;
+  threatDistribution: { name: string; value: number }[];
+  recentScans: {
+    url: string;
+    status: string;
+    score: number;
+    date: string;
+  }[];
 }
 
+export function getDashboardStats(): DashboardStats {
+  const scans = getAllAnalyses();
+  const totalScans = scans.length;
+  const safeUrls = scans.filter((item) => item.status === 'safe').length;
+  const maliciousUrls = scans.filter(
+    (item) => item.status === 'malicious' || item.status === 'phishing'
+  ).length;
 
+  const averageRisk = totalScans === 0
+    ? 0
+    : Math.round(scans.reduce((total, item) => total + item.score, 0) / totalScans);
 
-export function getDashboardStats():DashboardStats{
+  const threats: Record<string, number> = {};
+  for (const item of scans) {
+    const type = item.threatType || item.status || 'Unknown';
+    threats[type] = (threats[type] || 0) + 1;
+  }
 
+  const threatDistribution = Object.entries(threats).map(([name, value]) => ({ name, value }));
 
-    const scans =
-        getAllAnalyses();
+  const recentScans = [...scans]
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, 10)
+    .map((item) => ({
+      url: item.url,
+      status: item.status,
+      score: item.score,
+      date: item.createdAt,
+    }));
 
-
-
-    const totalScans =
-        scans.length;
-
-
-
-    const safeUrls =
-        scans.filter(
-            (item:any)=>
-            item.status === "safe"
-        ).length;
-
-
-
-    const maliciousUrls =
-        totalScans - safeUrls;
-
-
-
-    const averageRisk =
-        totalScans === 0
-        ?
-        0
-        :
-        Math.round(
-            scans.reduce(
-                (total:any,item:any)=>
-                total + (item.score || 0),
-                0
-            )
-            /
-            totalScans
-        );
-
-
-
-    const threats:any = {};
-
-
-
-    scans.forEach((item:any)=>{
-
-        const type =
-            item.threatType ||
-            item.status ||
-            "Unknown";
-
-
-        threats[type] =
-            (threats[type] || 0) + 1;
-
-    });
-
-
-
-    const threatDistribution =
-        Object.keys(threats)
-        .map(key=>({
-
-            name:key,
-
-            value:threats[key]
-
-        }));
-
-
-
-
-    const recentScans =
-        scans
-        .slice(-10)
-        .reverse()
-        .map((item:any)=>({
-
-            url:item.url,
-
-            status:item.status,
-
-            score:item.score || 0,
-
-            date:
-            item.createdAt ||
-            new Date().toISOString()
-
-        }));
-
-
-
-
-    return {
-
-        totalScans,
-
-        safeUrls,
-
-        maliciousUrls,
-
-        averageRisk,
-
-        threatDistribution,
-
-        recentScans
-
-    };
-
-
+  return {
+    totalScans,
+    safeUrls,
+    maliciousUrls,
+    averageRisk,
+    threatDistribution,
+    recentScans,
+  };
 }
