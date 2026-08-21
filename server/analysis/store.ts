@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { EnrichedUrlAnalysisResult } from './enriched-analyzer.js';
 
 export interface StoredAnalysis {
@@ -9,7 +11,49 @@ export interface StoredAnalysis {
   createdAt: string;
 }
 
-const analyses: StoredAnalysis[] = [];
+const dataDirectory = path.join(process.cwd(), 'data');
+const storageFile = path.join(dataDirectory, 'analysis-history.json');
+
+function loadAnalyses(): StoredAnalysis[] {
+  try {
+    if (!fs.existsSync(storageFile)) return [];
+
+    const raw = fs.readFileSync(storageFile, 'utf8');
+    if (!raw.trim()) return [];
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter((item): item is StoredAnalysis => {
+      if (!item || typeof item !== 'object') return false;
+      const value = item as Record<string, unknown>;
+      return (
+        typeof value.id === 'string' &&
+        typeof value.url === 'string' &&
+        typeof value.status === 'string' &&
+        typeof value.score === 'number' &&
+        typeof value.threatType === 'string' &&
+        typeof value.createdAt === 'string'
+      );
+    });
+  } catch (error) {
+    console.error('Failed to load analysis history:', error);
+    return [];
+  }
+}
+
+let analyses: StoredAnalysis[] = loadAnalyses();
+
+function persistAnalyses(): void {
+  try {
+    fs.mkdirSync(dataDirectory, { recursive: true });
+    const temporaryFile = `${storageFile}.tmp`;
+    fs.writeFileSync(temporaryFile, `${JSON.stringify(analyses, null, 2)}\n`, 'utf8');
+    fs.renameSync(temporaryFile, storageFile);
+  } catch (error) {
+    console.error('Failed to persist analysis history:', error);
+  }
+}
 
 function statusFromRisk(level: EnrichedUrlAnalysisResult['assessment']['level']): StoredAnalysis['status'] {
   switch (level) {
@@ -41,6 +85,7 @@ export function addAnalysis(result: EnrichedUrlAnalysisResult): StoredAnalysis {
   };
 
   analyses.push(entry);
+  persistAnalyses();
   return entry;
 }
 
@@ -49,5 +94,6 @@ export function getAllAnalyses(): StoredAnalysis[] {
 }
 
 export function clearAnalyses(): void {
-  analyses.length = 0;
+  analyses = [];
+  persistAnalyses();
 }
