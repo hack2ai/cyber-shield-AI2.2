@@ -1,0 +1,46 @@
+name: Route local sessions to local storage
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch local session detection
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/App.tsx')
+          text = path.read_text(encoding='utf-8')
+          old = """function isMockSessionUser(user: { uid: string } | null | undefined) {\n  return !!user && (\n    user.uid === 'mock-analyst-1337' ||\n    user.uid.startsWith('mock-user-')\n  );\n}"""
+          new = """function isMockSessionUser(user: { uid: string } | null | undefined) {\n  const isLocalBrowser = typeof window !== 'undefined' &&\n    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');\n\n  return isLocalBrowser || (!!user && (\n    user.uid === 'mock-analyst-1337' ||\n    user.uid.startsWith('mock-user-')\n  ));\n}"""
+
+          if old not in text:
+              raise SystemExit('Expected isMockSessionUser block was not found; no changes made.')
+
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          print('Patched local session detection.')
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.tsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "fix: use local storage for localhost app sessions"
+          git push
