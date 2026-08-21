@@ -18,6 +18,12 @@ function getBaseUrl(): string {
   const configured = import.meta.env.VITE_ANALYSIS_API_BASE_URL?.trim();
   if (configured) return configured.replace(/\/$/, '');
 
+  // The local API binds to IPv4. Using localhost can resolve to ::1 on Windows,
+  // where another listener may answer or reject the request.
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://127.0.0.1:3000';
+  }
+
   if (typeof window !== 'undefined') {
     return `${window.location.protocol}//${window.location.hostname}:3000`;
   }
