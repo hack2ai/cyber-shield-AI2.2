@@ -366,7 +366,7 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
             <Activity size={12} className="text-cyan-400" /> WEEKLY_THREAT_ACTIVITY_MATRIX
           </h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
               <AreaChart data={getWeeklyTrendData()} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorMalicious" x1="0" y1="0" x2="0" y2="1">
@@ -399,7 +399,7 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
           </h3>
           <div className="h-64 flex flex-col justify-between">
             <div className="h-44 relative">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                 <PieChart>
                   <Pie
                     data={getCategoryData()}
@@ -445,8 +445,8 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
             <Globe size={12} className="text-purple-400" /> THREAT_VECTOR_COORDINATES
           </h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={getRadarData()}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
+              <RadarChart cx="50%" cy="50%" outerRadius={80} data={getRadarData()}>
                 <PolarGrid stroke="#27272a" />
                 <PolarAngleAxis dataKey="subject" stroke="#71717a" tick={{ fontSize: 8 }} />
                 <PolarRadiusAxis stroke="#27272a" tick={{ fontSize: 8 }} />
@@ -463,7 +463,7 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
             <ShieldAlert size={12} className="text-red-500" /> ATTACK_ORIGINATIONS_BY_TLD
           </h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
               <BarChart data={getOriginsData()} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid stroke="#27272a" strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" stroke="#52525b" tick={{ fontSize: 9 }} />
@@ -572,7 +572,7 @@ export function ThreatAnalyticsDashboard({ user }: ThreatAnalyticsDashboardProps
             <TrendingUp size={12} className="text-purple-400" /> FORECASTED_7D_ATTACK_WAVES
           </h3>
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
               <LineChart data={getForecastChartData()} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis dataKey="name" stroke="#52525b" tick={{ fontSize: 9 }} />
