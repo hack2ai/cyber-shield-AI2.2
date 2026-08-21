@@ -72,10 +72,13 @@ function cn(...inputs: ClassValue[]) {
 }
 
 function isMockSessionUser(user: { uid: string } | null | undefined) {
-  return !!user && (
+  const isLocalBrowser = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  return isLocalBrowser || (!!user && (
     user.uid === 'mock-analyst-1337' ||
     user.uid.startsWith('mock-user-')
-  );
+  ));
 }
 
 function getDomainAge(creationDate: string | undefined) {
