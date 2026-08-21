@@ -8,13 +8,13 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "npx tsx server.ts",
+    "dev": "npx tsx server/startup.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude firestore.rules.test.ts",
     "test:rules": "vitest run firestore.rules.test.ts",
     "test:security": "vitest run server/analysis server/security",
     "audit": "npm audit --audit-level=high",
-    "build": "vite build && npx esbuild server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:express --external:@google/generative-ai --external:dotenv --external:vite --external:puppeteer",
+    "build": "vite build && npx esbuild server/startup.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:express",
     "start": "node dist/server.js",
     "preview": "vite preview",
     "check": "npm run typecheck && npm test && npm run build"
@@ -34,9 +34,6 @@
     "lucide-react": "^0.378.0",
     "motion": "^11.2.10",
     "puppeteer": "^25.1.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-is": "^19.2.6",
     "recharts": "^3.8.1",
     "tailwind-merge": "^2.3.0",
     "tsx": "^4.21.0",
@@ -52,13 +49,14 @@
     "@types/react-dom": "^18.3.0",
     "@types/whois-json": "^2.0.4",
     "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "10.4.19",
     "autoprefixer": "^10.4.19",
     "esbuild": "^0.21.4",
     "firebase-tools": "^13.6.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.4.5",
-    "vite": "^5.2.11",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "vite": "^5.2.11"
   }
 }
