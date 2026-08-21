@@ -1,0 +1,71 @@
+name: Patch local analytics behavior
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch analytics component
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/components/ThreatAnalyticsDashboard.tsx')
+          text = path.read_text(encoding='utf-8')
+          original = text
+
+          old = "const isGuestOrMock = currentUserId === 'mock-analyst-1337' || currentUserId === 'guest-operator';"
+          new = """const isLocalBrowser = typeof window !== 'undefined' &&\n    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');\n  const isGuestOrMock =\n    isLocalBrowser ||\n    currentUserId === 'mock-analyst-1337' ||\n    currentUserId === 'guest-operator' ||\n    currentUserId.startsWith('mock-user-');"""
+          if old in text:
+              text = text.replace(old, new, 1)
+
+          text = re.sub(
+              r"const parsedScans = localScans \? JSON\.parse\(localScans\) : \[[\s\S]*?\n        \];\n        setScanReports",
+              "const parsedScans = localScans ? JSON.parse(localScans) : [];\n        setScanReports",
+              text,
+              count=1,
+          )
+
+          text = re.sub(
+              r"const parsedFileScans = localFileScans \? JSON\.parse\(localFileScans\) : \[[\s\S]*?\n        \];\n        setFileScanReports",
+              "const parsedFileScans = localFileScans ? JSON.parse(localFileScans) : [];\n        setFileScanReports",
+              text,
+              count=1,
+          )
+
+          old_agg = """// Seed default counts if empty to ensure stunning visuals\n    const seedOffset = total === 0 ? 12 : 0;\n    const malicious = allReports.filter(r => r.classification === 'Malicious' || r.classification === 'Phishing').length + (total === 0 ? 6 : 0);\n    const suspicious = allReports.filter(r => r.classification === 'Suspicious').length + (total === 0 ? 3 : 0);\n    const safe = allReports.filter(r => r.classification === 'Safe').length + (total === 0 ? 7 : 0);\n    const displayTotal = total + (total === 0 ? 16 : 0);"""
+          new_agg = """const malicious = allReports.filter(r => r.classification === 'Malicious' || r.classification === 'Phishing').length;\n    const suspicious = allReports.filter(r => r.classification === 'Suspicious').length;\n    const safe = allReports.filter(r => r.classification === 'Safe').length;\n    const displayTotal = total;"""
+          if old_agg in text:
+              text = text.replace(old_agg, new_agg, 1)
+
+          if text == original:
+              print('No changes needed.')
+              raise SystemExit(0)
+
+          path.write_text(text, encoding='utf-8')
+          print('Analytics component patched.')
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/ThreatAnalyticsDashboard.tsx
+          if git diff --cached --quiet; then
+            echo "No patch commit required."
+            exit 0
+          fi
+          git commit -m "fix: use real local analytics data"
+          git push
