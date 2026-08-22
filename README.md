@@ -1,14 +1,49 @@
-# Cyber Shield AI
+# CyberShield AI
+
+> AI-assisted defensive phishing and threat-intelligence platform for structured URL and domain security analysis.
 
 [![CI](https://github.com/hack2ai/cyber-shield-AI2.2/actions/workflows/ci.yml/badge.svg)](https://github.com/hack2ai/cyber-shield-AI2.2/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 
-AI-assisted phishing and threat-intelligence platform for defensive URL and domain analysis.
+## Overview
 
-Cyber Shield AI combines deterministic URL heuristics with external security intelligence and optional AI-assisted explanations. The project is being structured as a layered security-analysis platform with a React/Vite interface, an Express API, typed analysis services, and automated regression testing.
+CyberShield AI combines **deterministic URL heuristics, security intelligence, destination validation, and optional AI-assisted explanations** into a layered analysis pipeline.
 
-> **Defensive-use project:** results are heuristic and intelligence-driven. A score is not proof that a resource is safe or malicious and should not be the sole basis for a security decision.
+The project is designed for defensive security research and demonstrates how local evidence can be combined with external intelligence while keeping the baseline risk assessment independent from an LLM response.
 
-## Highlights
+> **Defensive-use project:** risk scores are heuristic and intelligence-driven. A score is not proof that a resource is safe or malicious and should never be the sole basis for a security decision.
+
+## Detection Pipeline
+
+```text
+URL / Browser Extension
+          ↓
+Request + URL Validation
+          ↓
+SSRF / Destination Checks
+          ↓
+┌───────────────────────┐
+│ Local URL Features    │
+│ Risk Rules            │
+│ DNS / TLS / WHOIS     │
+│ VirusTotal Intelligence│
+└───────────┬───────────┘
+            ↓
+     Redirect Analysis
+            ↓
+     Evidence Fusion
+            ↓
+     Calibrated Score
+            ↓
+   Structured Security Report
+            ↓
+ Optional AI Explanation
+```
+
+## Security Capabilities
 
 | Capability | Status |
 |---|---|
@@ -16,140 +51,94 @@ Cyber Shield AI combines deterministic URL heuristics with external security int
 | Deterministic risk scoring | Implemented |
 | SSRF-aware destination validation | Implemented |
 | DNS intelligence | Implemented |
-| TLS/certificate intelligence | Implemented |
-| WHOIS/domain intelligence | Implemented |
-| VirusTotal domain enrichment | Implemented when configured |
+| TLS / certificate intelligence | Implemented |
+| WHOIS / domain intelligence | Implemented |
+| VirusTotal enrichment | Implemented when configured |
 | Redirect-chain analysis | Implemented |
 | Typed analysis API | Implemented |
-| Automated unit/regression tests | Implemented |
+| Automated tests | Implemented |
 | GitHub Actions CI | Implemented |
-| Gemini-assisted explanation | Existing project capability |
-| Firebase authentication/data | Existing project capability |
-| File and QR workflows | Existing project capability |
-| Browser extension | Existing project capability |
-
-## Detection pipeline
-
-```text
-                         User / Extension
-                               |
-                               v
-                      POST /api/analysis
-                               |
-                               v
-                    Request + URL validation
-                               |
-                               v
-                         SSRF checks
-                               |
-                 +-------------+-------------+
-                 |                           |
-                 v                           v
-        Deterministic analysis       Threat intelligence
-                 |                           |
-        +--------+--------+        +---------+---------+
-        |                 |        |         |    |    |
-        v                 v        v         v    v    v
-   URL features       Risk rules   DNS       TLS WHOIS VT
-                 \                /
-                  \              /
-                   +------------+
-                         |
-                         v
-                  Redirect analysis
-                         |
-                         v
-                Combined evidence
-                         |
-                         v
-                Calibrated scoring
-                         |
-                         v
-                Typed security report
-```
+| Gemini-assisted explanation | Existing capability |
+| Firebase authentication / data | Existing capability |
+| Browser extension | Existing capability |
+| QR / file workflows | Existing capability |
 
 ## Architecture
 
-The backend is being decomposed into focused layers instead of putting all analysis logic in one Express entry point:
-
 ```text
+src/                         # React frontend
+extension/                   # Browser extension
 server/
-├── api/                    # HTTP contracts, controllers, routes
-├── analysis/               # features, scoring, enriched analysis
-├── config/                 # validated environment configuration
-├── security/               # headers, rate limiting, URL/SSRF validation
-├── services/               # DNS, TLS, WHOIS, VirusTotal, redirects
-├── app.ts                  # Express application factory
-└── startup.ts              # process startup / listen()
+├── api/                     # Routes, controllers, contracts
+├── analysis/                # Features, scoring, analysis
+├── config/                  # Environment configuration
+├── security/                # Headers, rate limits, SSRF checks
+└── services/                # DNS, TLS, WHOIS, VT, redirects
 ```
 
-The legacy `server.ts` remains in the repository for compatibility while the modular server layer is introduced incrementally.
+The backend is intentionally being decomposed into focused layers so security analysis, external providers, validation, and HTTP concerns remain independently testable.
 
-## Security model
-
-The project treats external analysis as untrusted I/O:
-
-- Request bodies are validated before analysis.
-- External destinations are passed through URL/destination validation before network analysis.
-- Redirect destinations are validated again before following the next hop.
-- External intelligence services use explicit timeouts.
-- VirusTotal failure is non-fatal; local analysis can still produce a result.
-- Secrets are read from server-side environment configuration and are not intended for client bundles.
-- Risk scores are deterministic from collected evidence; AI output is not the sole source of the baseline score.
-
-## Technology stack
+## Technology Stack
 
 **Frontend**
 
-React 18 · TypeScript · Vite · Tailwind CSS · Recharts · Motion · Lucide
+React • TypeScript • Vite • Tailwind CSS • Recharts • Motion • Lucide
 
 **Backend**
 
-Node.js · Express · TypeScript
+Node.js • Express • TypeScript
 
-**Security intelligence**
+**Security Intelligence**
 
-Node DNS · TLS certificate inspection · WHOIS · VirusTotal · redirect analysis
+DNS • TLS • WHOIS • VirusTotal • Redirect Analysis
 
 **AI**
 
 Google Gemini
 
-**Authentication / data**
+**Authentication / Data**
 
-Firebase Authentication · Firestore · Firebase Admin
+Firebase Authentication • Firestore • Firebase Admin
 
-**Testing / quality**
+**Quality**
 
-Vitest · Firebase Rules Unit Testing · TypeScript strict checking · GitHub Actions
+Vitest • Firebase Rules Testing • TypeScript Strict Mode • GitHub Actions
 
-## Requirements
+## Security Model
 
-- Node.js 20+
-- npm 10+
-- A Firebase project for deployments that use the Firebase-backed features
-- Gemini API key for Gemini-dependent functionality
-- VirusTotal API key for VirusTotal enrichment
+The platform treats external analysis as untrusted I/O:
+
+- Validate request bodies before analysis.
+- Validate external destinations before network access.
+- Re-validate redirect destinations before following hops.
+- Apply explicit timeouts to external intelligence providers.
+- Keep third-party provider failures non-fatal where local analysis remains possible.
+- Keep secrets server-side and out of client bundles.
+- Keep the baseline risk score deterministic from collected evidence.
+- Treat AI explanations as contextual assistance rather than authoritative security verdicts.
 
 ## Installation
 
+### Requirements
+
+- Node.js 20+
+- npm 10+
+- Firebase project for Firebase-backed features
+- Gemini API key for Gemini-dependent features
+- VirusTotal API key for VirusTotal enrichment
+
 ```bash
 npm install
-```
-
-Create a local environment file from the example configuration:
-
-```bash
 cp .env.example .env.local
 ```
 
-Populate only the credentials required for the features you are using.
+Populate only the credentials required by the features you intend to use.
 
-## Environment configuration
+## Environment Configuration
 
-The modular server reads configuration through `server/config/env.ts`.
+The modular backend reads configuration through `server/config/env.ts`.
 
-Common variables include:
+Typical variables include:
 
 ```dotenv
 NODE_ENV=development
@@ -157,69 +146,42 @@ PORT=3000
 ALLOWED_ORIGINS=http://localhost:5173
 GEMINI_API_KEY=
 VIRUSTOTAL_API_KEY=
-ABUSEIPDB_API_KEY=
-HIBP_API_KEY=
-DEHASHED_EMAIL=
-DEHASHED_API_KEY=
-LYZR_API_KEY=
 ```
 
-Never commit `.env.local`, API keys, Firebase service-account credentials, or other secrets.
+**Never commit API keys, Firebase service-account credentials, `.env.local`, or other secrets.**
 
-## Development
-
-The existing project entry point remains:
+## Development & Testing
 
 ```bash
 npm run dev
-```
-
-Run the quality checks with:
-
-```bash
 npm run typecheck
 npm test
 npm run build
-```
-
-Or run the full local gate:
-
-```bash
 npm run check
 ```
 
-## Testing
-
-Run the full Vitest suite:
-
-```bash
-npm test
-```
-
-Run security-analysis tests only:
+Security-focused tests:
 
 ```bash
 npm run test:security
 ```
 
-Run Firestore rules tests:
+Firebase rules tests:
 
 ```bash
 npm run test:rules
 ```
 
-The analysis tests mock external intelligence providers so unit tests can remain deterministic and do not require live API credentials.
+The analysis tests mock external intelligence providers so unit tests can remain deterministic without live credentials.
 
-## API contract
-
-The modular API exposes the analysis route through the API router:
+## API
 
 ```http
 POST /api/analysis
 Content-Type: application/json
 ```
 
-Request:
+Example request:
 
 ```json
 {
@@ -227,62 +189,40 @@ Request:
 }
 ```
 
-The response contains structured analysis data including URL features, findings, a calibrated risk assessment, threat-intelligence results, and redirect evidence.
+The response contains structured evidence, findings, risk assessment, intelligence results, and redirect information.
 
 ## CI
 
-GitHub Actions runs on pushes and pull requests targeting `main`:
+GitHub Actions validates changes through the project quality gate:
 
 ```text
 npm ci
-   ↓
+  ↓
 npm run typecheck
-   ↓
+  ↓
 npm test
-   ↓
+  ↓
 npm run build
 ```
 
-Workflow: `.github/workflows/ci.yml`
-
-## Project structure
-
-```text
-.
-├── src/                  # React application
-├── extension/            # Browser extension
-├── assets/               # Static project assets
-├── docs/                 # Deployment/build assets used by the project
-├── server/               # Modular backend architecture
-│   ├── api/
-│   ├── analysis/
-│   ├── config/
-│   ├── security/
-│   └── services/
-├── server.ts             # Existing application entry point
-├── firestore.rules
-├── firestore.rules.test.ts
-├── vite.config.ts
-├── tsconfig.json
-├── package.json
-└── .github/workflows/ci.yml
-```
-
-## Production considerations
-
-Before production deployment, configure strict CORS origins, rate limits appropriate to the expected traffic, centralized secret management, structured logging, least-privilege Firebase IAM, dependency and secret scanning, and monitoring for failed external intelligence providers.
-
 ## Roadmap
 
-- Complete incremental extraction from the legacy `server.ts`
-- Add controller/API integration tests
-- Add provider-specific service tests and fixtures
-- Add dependency vulnerability and secret scanning to CI
+- Complete migration from legacy server entry points
+- Expand controller and integration coverage
+- Add dependency vulnerability scanning
+- Add secret scanning to CI
 - Add structured security-event telemetry
-- Improve explanation quality around evidence and confidence
-- Expand browser-extension integration with the typed analysis API
-- Continue frontend/dashboard improvements based on the enriched result model
+- Improve evidence/confidence explanations
+- Expand browser-extension integration
+- Continue dashboard and result-model improvements
 
 ## License
 
 Apache-2.0
+
+## Author
+
+**Pankaj (Tony) Kumar**  
+AI Engineer • Full Stack Developer • Generative AI & RAG Specialist
+
+[GitHub](https://github.com/hack2ai) • [LinkedIn](https://www.linkedin.com/in/pankaj-kumar-ab591a216)
