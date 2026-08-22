@@ -1,6 +1,6 @@
 # CyberShield AI
 
-> AI-assisted defensive phishing and threat-intelligence platform for structured URL and domain security analysis.
+> A defensive AI-assisted phishing and threat-intelligence platform for structured URL and domain security analysis.
 
 [![CI](https://github.com/hack2ai/cyber-shield-AI2.2/actions/workflows/ci.yml/badge.svg)](https://github.com/hack2ai/cyber-shield-AI2.2/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -12,9 +12,13 @@
 
 CyberShield AI combines **deterministic URL heuristics, security intelligence, destination validation, and optional AI-assisted explanations** into a layered analysis pipeline.
 
-The project is designed for defensive security research and demonstrates how local evidence can be combined with external intelligence while keeping the baseline risk assessment independent from an LLM response.
+The architecture keeps the baseline risk assessment independent from the LLM response. External intelligence and AI are treated as supporting evidence rather than an authoritative security verdict.
 
 > **Defensive-use project:** risk scores are heuristic and intelligence-driven. A score is not proof that a resource is safe or malicious and should never be the sole basis for a security decision.
+
+## Why It Matters
+
+Phishing detection is strongest when multiple evidence sources are evaluated together. CyberShield AI demonstrates a practical approach in which local URL evidence, network metadata, reputation intelligence, redirect behavior, and optional AI explanations are combined into a structured security report.
 
 ## Detection Pipeline
 
@@ -25,22 +29,22 @@ Request + URL Validation
           ↓
 SSRF / Destination Checks
           ↓
-┌───────────────────────┐
-│ Local URL Features    │
-│ Risk Rules            │
-│ DNS / TLS / WHOIS     │
+┌────────────────────────┐
+│ Local URL Features     │
+│ Risk Rules             │
+│ DNS / TLS / WHOIS      │
 │ VirusTotal Intelligence│
-└───────────┬───────────┘
-            ↓
-     Redirect Analysis
-            ↓
-     Evidence Fusion
-            ↓
-     Calibrated Score
-            ↓
+└────────────┬───────────┘
+             ↓
+      Redirect Analysis
+             ↓
+       Evidence Fusion
+             ↓
+      Calibrated Score
+             ↓
    Structured Security Report
-            ↓
- Optional AI Explanation
+             ↓
+     Optional AI Explanation
 ```
 
 ## Security Capabilities
@@ -76,37 +80,22 @@ server/
 └── services/                # DNS, TLS, WHOIS, VT, redirects
 ```
 
-The backend is intentionally being decomposed into focused layers so security analysis, external providers, validation, and HTTP concerns remain independently testable.
+The backend is decomposed into focused layers so security analysis, external providers, validation, and HTTP concerns remain independently testable.
 
 ## Technology Stack
 
-**Frontend**
-
-React • TypeScript • Vite • Tailwind CSS • Recharts • Motion • Lucide
-
-**Backend**
-
-Node.js • Express • TypeScript
-
-**Security Intelligence**
-
-DNS • TLS • WHOIS • VirusTotal • Redirect Analysis
-
-**AI**
-
-Google Gemini
-
-**Authentication / Data**
-
-Firebase Authentication • Firestore • Firebase Admin
-
-**Quality**
-
-Vitest • Firebase Rules Testing • TypeScript Strict Mode • GitHub Actions
+| Layer | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts, Motion, Lucide |
+| Backend | Node.js, Express, TypeScript |
+| Security intelligence | DNS, TLS, WHOIS, VirusTotal, redirect analysis |
+| AI | Google Gemini |
+| Authentication / data | Firebase Authentication, Firestore, Firebase Admin |
+| Quality | Vitest, Firebase Rules Testing, TypeScript strict mode, GitHub Actions |
 
 ## Security Model
 
-The platform treats external analysis as untrusted I/O:
+External analysis is treated as **untrusted I/O**:
 
 - Validate request bodies before analysis.
 - Validate external destinations before network access.
@@ -172,7 +161,7 @@ Firebase rules tests:
 npm run test:rules
 ```
 
-The analysis tests mock external intelligence providers so unit tests can remain deterministic without live credentials.
+External intelligence providers are mocked in unit tests so the core analysis suite can remain deterministic without live credentials.
 
 ## API
 
@@ -193,7 +182,7 @@ The response contains structured evidence, findings, risk assessment, intelligen
 
 ## CI
 
-GitHub Actions validates changes through the project quality gate:
+GitHub Actions validates changes through the project's quality gate:
 
 ```text
 npm ci
@@ -204,6 +193,19 @@ npm test
   ↓
 npm run build
 ```
+
+## Production Readiness Checklist
+
+Before treating the system as a production security service, add or verify:
+
+- Dependency vulnerability scanning
+- Secret scanning and push protection
+- Centralized security-event telemetry
+- Authentication and authorization review
+- Provider failure/timeout monitoring
+- Rate limiting and abuse controls
+- Security regression tests
+- Threat modeling and independent security review
 
 ## Roadmap
 
