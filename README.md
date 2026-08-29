@@ -5,7 +5,7 @@
 [![CI](https://github.com/hack2ai/cyber-shield-AI2.2/actions/workflows/ci.yml/badge.svg)](https://github.com/hack2ai/cyber-shield-AI2.2/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22.12+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 
 ## Overview
@@ -62,6 +62,7 @@ SSRF / Destination Checks
 | Typed analysis API | Implemented |
 | Automated tests | Implemented |
 | GitHub Actions CI | Implemented |
+| Production dependency audit | Implemented |
 | Gemini-assisted explanation | Existing capability |
 | Firebase authentication / data | Existing capability |
 | Browser extension | Existing capability |
@@ -87,7 +88,7 @@ The backend is decomposed into focused layers so security analysis, external pro
 | Layer | Technologies |
 |---|---|
 | Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts, Motion, Lucide |
-| Backend | Node.js, Express, TypeScript |
+| Backend | Node.js 22.12+, Express, TypeScript |
 | Security intelligence | DNS, TLS, WHOIS, VirusTotal, redirect analysis |
 | AI | Google Gemini |
 | Authentication / data | Firebase Authentication, Firestore, Firebase Admin |
@@ -110,7 +111,7 @@ External analysis is treated as **untrusted I/O**:
 
 ### Requirements
 
-- Node.js 20+
+- Node.js 22.12+
 - npm 10+
 - Firebase project for Firebase-backed features
 - Gemini API key for Gemini-dependent features
@@ -182,36 +183,44 @@ The response contains structured evidence, findings, risk assessment, intelligen
 
 ## CI
 
-GitHub Actions validates changes through the project's quality gate:
+GitHub Actions validates changes through the project's production quality gate:
 
 ```text
-npm ci
+npm install --no-audit
   ↓
-npm run typecheck
+Production dependency audit
   ↓
-npm test
+Full dependency audit (non-blocking)
   ↓
-npm run build
+TypeScript typecheck
+  ↓
+Security tests
+  ↓
+Unit tests
+  ↓
+Firestore rules tests
+  ↓
+Production build
 ```
+
+The production dependency audit is blocking for high-severity vulnerabilities. The full dependency audit is retained as visibility into development-tooling vulnerabilities without preventing deployment when those vulnerabilities are not part of the production dependency graph.
 
 ## Production Readiness Checklist
 
-Before treating the system as a production security service, add or verify:
+Before treating the system as a production security service, verify:
 
-- Dependency vulnerability scanning
-- Secret scanning and push protection
-- Centralized security-event telemetry
-- Authentication and authorization review
-- Provider failure/timeout monitoring
-- Rate limiting and abuse controls
-- Security regression tests
-- Threat modeling and independent security review
+- Secret scanning and push protection are enabled in the repository settings.
+- Authentication and authorization have been independently reviewed.
+- Centralized security-event telemetry is configured.
+- Provider failure/timeout monitoring is configured.
+- Rate limiting is backed by shared storage for multi-instance deployments.
+- Security regression coverage is maintained as new attack paths are added.
+- Threat modeling and independent security review are completed for real production use.
 
 ## Roadmap
 
 - Complete migration from legacy server entry points
 - Expand controller and integration coverage
-- Add dependency vulnerability scanning
 - Add secret scanning to CI
 - Add structured security-event telemetry
 - Improve evidence/confidence explanations
