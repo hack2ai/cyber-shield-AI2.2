@@ -4,7 +4,8 @@ type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 60;
-const CLEANUP_INTERVAL_MS = 5 * 60_000;
+const MAX_BUCKETS = 10_000;
+const CLEANUP_INTERVAL_MS = 60_000;
 let lastCleanupAt = 0;
 
 function cleanupExpiredBuckets(now: number): void {
@@ -16,7 +17,17 @@ function cleanupExpiredBuckets(now: number): void {
   }
 }
 
-/** Small dependency-free baseline limiter. Use a shared/proxied limiter for multi-instance production deployments. */
+function evictOldestBucket(): boolean {
+  const first = buckets.keys().next().value as string | undefined;
+  if (!first) return false;
+  buckets.delete(first);
+  return true;
+}
+
+/**
+ * Dependency-free baseline limiter. Multi-instance production deployments
+ * should use a shared/proxied limiter (for example Redis-backed) instead.
+ */
 export const rateLimit: RequestHandler = (req, res, next) => {
   const now = Date.now();
   cleanupExpiredBuckets(now);
@@ -25,6 +36,10 @@ export const rateLimit: RequestHandler = (req, res, next) => {
   const current = buckets.get(key);
 
   if (!current || current.resetAt <= now) {
+    if (!current && buckets.size >= MAX_BUCKETS && !evictOldestBucket()) {
+      return res.status(503).json({ error: 'Rate limiter temporarily unavailable.' });
+    }
+
     buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
     return next();
   }
