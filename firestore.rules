@@ -46,9 +46,11 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming());
+      // New users must start as a standard user. Admin assignment must happen
+      // through a trusted administrative path, never through client-controlled data.
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().role == 'user';
       allow update: if isOwner(userId) && 
-                      incoming().role == existing().role && // Prevent self-promotion
+                      incoming().role == existing().role &&
                       incoming().createdAt == existing().createdAt &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email']);
     }
@@ -69,7 +71,6 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidScanReport(incoming()) && isValidId(reportId) && userExists();
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
-      // No updates allowed to history for integrity
     }
 
     // --- File Scan Reports ---
@@ -91,7 +92,6 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidFileScanReport(incoming()) && isValidId(reportId) && userExists();
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
-      // No updates allowed to history for integrity
     }
 
     // --- Breach Reports ---
@@ -109,7 +109,6 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidBreachReport(incoming()) && isValidId(reportId) && userExists();
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
-      // No updates allowed to history for integrity
     }
 
     // --- Email Header Reports ---
@@ -128,7 +127,6 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidEmailHeaderReport(incoming()) && isValidId(reportId) && userExists();
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
-      // No updates allowed to history for integrity
     }
 
     // --- Subscriptions ---
