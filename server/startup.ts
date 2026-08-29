@@ -1,13 +1,17 @@
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
+import { logger } from './logging/logger.js';
 
 /** Process entry point for the modular Express API. */
 export function startServer() {
   const app = createApp();
 
   return app.listen(env.port, '0.0.0.0', () => {
-    console.log(`Cyber Shield AI API listening on port ${env.port}`);
+    logger.info('Cyber Shield AI API started', {
+      port: env.port,
+      environment: env.nodeEnv,
+    });
   });
 }
 
