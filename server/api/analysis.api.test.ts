@@ -11,6 +11,7 @@ vi.mock('../analysis/enriched-analyzer.js', () => ({
 }));
 
 vi.mock('../security/index.js', () => ({
+  requestContext: (_req: unknown, _res: unknown, next: () => void) => next(),
   rateLimit: (_req: unknown, _res: unknown, next: () => void) => next(),
   securityHeaders: (_req: unknown, _res: unknown, next: () => void) => next(),
   validateExternalUrl: mockValidateExternalUrl,
