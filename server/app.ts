@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { apiRouter } from './api/index.js';
 import { env } from './config/env.js';
+import { logger } from './logging/logger.js';
 import { rateLimit, requestContext, securityHeaders } from './security/index.js';
 
 /**
@@ -26,17 +27,16 @@ export function createApp() {
 
   app.use('/api', apiRouter);
 
-  // Keep unknown API failures JSON-only and predictable for clients.
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'API route not found' });
   });
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('Unhandled API error:', error);
+    logger.error('Unhandled API error', {
+      requestId: res.locals.requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     if (res.headersSent) return;
-
-    // Do not expose internal exception messages, stack traces, provider errors,
-    // database details, or implementation-specific paths to remote clients.
     res.status(500).json({ error: 'Internal server error' });
   });
 
