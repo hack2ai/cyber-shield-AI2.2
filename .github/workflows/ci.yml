@@ -26,7 +26,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit
+        run: npm ci --no-audit
 
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
