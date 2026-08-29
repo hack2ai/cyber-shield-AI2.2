@@ -2,13 +2,32 @@ type LogLevel = 'INFO' | 'WARN' | 'ERROR';
 
 type LogFields = Record<string, unknown>;
 
+function serializeValue(value: unknown): unknown {
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+    };
+  }
+
+  if (typeof value === 'bigint') return value.toString();
+  if (value === undefined) return null;
+  return value;
+}
+
+function sanitizeFields(fields: LogFields): LogFields {
+  return Object.fromEntries(
+    Object.entries(fields).map(([key, value]) => [key, serializeValue(value)]),
+  );
+}
+
 function write(level: LogLevel, message: string, fields: LogFields = {}): void {
   const entry = {
     timestamp: new Date().toISOString(),
     level,
     service: 'cyber-shield-ai',
     message,
-    ...fields,
+    ...sanitizeFields(fields),
   };
 
   const output = JSON.stringify(entry);
