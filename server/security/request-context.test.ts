@@ -27,9 +27,15 @@ describe('request context', () => {
     expect(result.body.requestId).toBe(result.header);
   });
 
-  it('preserves a bounded incoming request id', async () => {
-    const result = await getRequestId('trace-123');
-    expect(result.header).toBe('trace-123');
-    expect(result.body.requestId).toBe('trace-123');
+  it('preserves a safe bounded incoming request id', async () => {
+    const result = await getRequestId('trace-123:abc_1');
+    expect(result.header).toBe('trace-123:abc_1');
+    expect(result.body.requestId).toBe('trace-123:abc_1');
+  });
+
+  it('replaces unsafe incoming request ids', async () => {
+    const result = await getRequestId('trace value\nforged-log-entry');
+    expect(result.header).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(result.body.requestId).toBe(result.header);
   });
 });
