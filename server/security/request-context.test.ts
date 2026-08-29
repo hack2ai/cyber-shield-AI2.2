@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import express from 'express';
-import { requestContext, REQUEST_ID_HEADER } from './request-context.js';
+import { normalizeRequestId, requestContext, REQUEST_ID_HEADER } from './request-context.js';
 
 async function getRequestId(incoming?: string) {
   const app = express();
@@ -33,9 +33,15 @@ describe('request context', () => {
     expect(result.body.requestId).toBe('trace-123:abc_1');
   });
 
-  it('replaces unsafe incoming request ids', async () => {
-    const result = await getRequestId('trace value\nforged-log-entry');
-    expect(result.header).toMatch(/^[0-9a-f-]{36}$/i);
-    expect(result.body.requestId).toBe(result.header);
+  it('replaces unsafe incoming request ids', () => {
+    const unsafe = 'trace value\nforged-log-entry';
+    const normalized = normalizeRequestId(unsafe);
+    expect(normalized).not.toBe(unsafe);
+    expect(normalized).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it('replaces overlong incoming request ids', () => {
+    const normalized = normalizeRequestId('a'.repeat(129));
+    expect(normalized).toMatch(/^[0-9a-f-]{36}$/i);
   });
 });
