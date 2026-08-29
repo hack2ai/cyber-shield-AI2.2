@@ -25,7 +25,6 @@ export interface LegacyAnalysisResult {
     whois: Record<string, unknown>;
     heuristics: Record<string, unknown>;
   };
-  enriched?: ApiAnalysisResult;
 }
 
 function classificationFromLevel(level: ApiAnalysisResult['assessment']['level']): LegacyClassification {
@@ -84,16 +83,31 @@ export function adaptAnalysisResult(result: ApiAnalysisResult): LegacyAnalysisRe
       threatIntel: `VirusTotal: ${threatIntelligence.virusTotal.malicious} malicious, ${threatIntelligence.virusTotal.suspicious} suspicious, status ${threatIntelligence.virusTotal.status}. Redirects: ${redirects.redirectCount}.`,
     },
     raw: {
-      dns: threatIntelligence.dns as unknown as Record<string, unknown>,
-      ssl: threatIntelligence.tls as unknown as Record<string, unknown>,
+      dns: {
+        hostname: threatIntelligence.dns.hostname,
+        ipv4Count: threatIntelligence.dns.ipv4.length,
+        ipv6Count: threatIntelligence.dns.ipv6.length,
+        errorCount: threatIntelligence.dns.errors.length,
+      },
+      ssl: {
+        hostname: threatIntelligence.tls.hostname,
+        port: threatIntelligence.tls.port,
+        authorized: threatIntelligence.tls.authorized,
+        protocol: threatIntelligence.tls.protocol,
+        error: threatIntelligence.tls.error,
+      },
       ct: [],
-      whois: threatIntelligence.whois as unknown as Record<string, unknown>,
+      whois: {
+        domain: threatIntelligence.whois.domain,
+        registrar: threatIntelligence.whois.registrar,
+        createdAt: threatIntelligence.whois.createdAt,
+        expiresAt: threatIntelligence.whois.expiresAt,
+        updatedAt: threatIntelligence.whois.updatedAt,
+      },
       heuristics: {
         redirectCount: redirects.redirectCount,
-        finalUrl: redirects.finalUrl,
         hostnameChanged: redirects.hostnameChanged,
       },
     },
-    enriched: result,
   };
 }
