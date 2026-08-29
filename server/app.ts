@@ -25,8 +25,7 @@ export function createApp() {
 
   app.use('/api', apiRouter);
 
-  // Never let an unknown API route fall through to an HTML 404 page. The
-  // frontend expects JSON and this also makes API failures much easier to debug.
+  // Keep unknown API failures JSON-only and predictable for clients.
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'API route not found' });
   });
@@ -34,7 +33,10 @@ export function createApp() {
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Unhandled API error:', error);
     if (res.headersSent) return;
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Internal server error' });
+
+    // Do not expose internal exception messages, stack traces, provider errors,
+    // database details, or implementation-specific paths to remote clients.
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   return app;
