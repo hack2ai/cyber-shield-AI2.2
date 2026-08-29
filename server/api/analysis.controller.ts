@@ -11,10 +11,7 @@ export async function analyzeUrlController(req: Request, res: Response): Promise
     const safeUrl = await validateExternalUrl(url);
     const result = await analyzeUrlEnriched(safeUrl);
 
-    // Keep the latest analysis in the in-memory store so the dashboard
-    // endpoint can expose aggregate metrics for this running process.
     addAnalysis(result);
-
     res.status(200).json(analysisSuccess(result));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to analyze URL';
@@ -25,7 +22,20 @@ export async function analyzeUrlController(req: Request, res: Response): Promise
         ? 'INVALID_URL'
         : 'ANALYSIS_FAILED';
 
+    const clientMessage = code === 'INVALID_URL'
+      ? 'The supplied URL is invalid.'
+      : code === 'DESTINATION_NOT_ALLOWED'
+        ? 'The requested destination is not allowed.'
+        : 'Unable to analyze the URL.';
+
+    if (code === 'ANALYSIS_FAILED') {
+      console.error('URL analysis failed', {
+        requestId: res.locals.requestId,
+        error,
+      });
+    }
+
     res.status(code === 'INVALID_URL' || code === 'DESTINATION_NOT_ALLOWED' ? 400 : 500)
-      .json(analysisError(code, message));
+      .json(analysisError(code, clientMessage));
   }
 }
