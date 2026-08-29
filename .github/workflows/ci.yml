@@ -13,6 +13,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -33,8 +34,18 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Run tests
+      - name: Security tests
+        run: npm run test:security
+
+      - name: Unit tests
         run: npm test
 
-      - name: Build
+      - name: Firestore rules tests
+        run: |
+          npx firebase-tools emulators:exec \
+            --only firestore \
+            --project phish-intel-test \
+            "npm run test:rules"
+
+      - name: Production build
         run: npm run build
