@@ -6,6 +6,8 @@ import { env } from '../config/env.js';
 export const compatRouter = Router();
 compatRouter.use(rateLimit);
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -44,8 +46,8 @@ compatRouter.post('/breach-check', async (req: Request, res: Response) => {
     const records = await response.json() as Array<Record<string, unknown>>;
     const categories = Array.from(new Set(records.flatMap((record) => String(record.DataClasses ?? '').split(',').map((item) => item.trim()).filter(Boolean))));
     return res.status(200).json({ identity, breachCount: records.length, breaches: records.map((record) => ({ name: String(record.Name ?? 'Unknown'), title: String(record.Title ?? record.Name ?? 'Unknown breach'), domain: String(record.Domain ?? ''), breachDate: String(record.BreachDate ?? ''), addedDate: String(record.AddedDate ?? ''), dataClasses: Array.isArray(record.DataClasses) ? record.DataClasses : String(record.DataClasses ?? '').split(',').map((item) => item.trim()).filter(Boolean) })), compromisedCategories: categories, passwordExposure: categories.some((item) => item.toLowerCase().includes('password')) ? 'exposed-in-records' : 'not-indicated', recommendations: ['Reset passwords associated with exposed accounts and do not reuse them.', 'Enable phishing-resistant MFA on affected services.', 'Review session tokens and recovery channels for unexpected changes.'], providerStatus: 'ok' });
-  } catch (error) {
-    return jsonError(res, 502, error instanceof Error ? error.message : 'Breach provider request failed');
+  } catch {
+    return jsonError(res, 502, 'Breach provider request failed');
   }
 });
 
@@ -84,9 +86,14 @@ compatRouter.post('/analyze-file', (req: Request, res: Response) => {
   const fileType = text(req.body?.fileType) || 'application/octet-stream';
   const fileSize = Number(req.body?.fileSize ?? 0);
   if (!fileData) return jsonError(res, 400, 'fileData is required');
-  if (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > 10 * 1024 * 1024) return jsonError(res, 413, 'file exceeds 10MB limit');
+  if (fileName.length > 256) return jsonError(res, 400, 'fileName is too long');
+  if (fileType.length > 128) return jsonError(res, 400, 'fileType is too long');
+  if (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > MAX_FILE_BYTES) return jsonError(res, 413, 'file exceeds 10MB limit');
   try {
     const bytes = Buffer.from(fileData, 'base64');
+    if (bytes.byteLength > MAX_FILE_BYTES) return jsonError(res, 413, 'decoded file exceeds 10MB limit');
+    if (fileSize !== 0 && fileSize !== bytes.byteLength) return jsonError(res, 400, 'fileSize does not match decoded payload');
+    const normalizedSize = bytes.byteLength;
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     let threatScore = 5;
     const indicators: string[] = [];
@@ -96,7 +103,7 @@ compatRouter.post('/analyze-file', (req: Request, res: Response) => {
     if (/invoice|urgent|update|patch|crack|keygen|loader|payload|dropper/.test(lower)) { threatScore += 20; indicators.push('Filename contains a high-risk delivery keyword'); }
     if (/\.(pdf|doc|docx|xls|xlsx)\.(exe|scr|js|cmd|bat)$/i.test(fileName)) { threatScore += 35; indicators.push('Double-extension masquerading pattern detected'); }
     const classification = threatScore >= 70 ? 'Malicious' : threatScore >= 35 ? 'Suspicious' : 'Safe';
-    return res.status(200).json({ id: `local-file-${Date.now()}`, threatScore: Math.min(100, threatScore), classification, malwareFamily: classification === 'Malicious' ? 'Heuristic-Detected' : 'None', explanation: indicators.length ? `${indicators.join('. ')}.` : 'No high-confidence static indicators were detected by the local analyzer.', recommendation: classification === 'Safe' ? 'Continue with normal controls and verify the file source.' : 'Quarantine the file and verify it with your enterprise malware-analysis stack before execution.', fileName, fileSize, fileType, sha256, detectionStats: { malicious: classification === 'Malicious' ? 1 : 0, harmless: classification === 'Safe' ? 1 : 0, suspicious: classification === 'Suspicious' ? 1 : 0, undetected: 0 }, iocIndicators: indicators, timeline: [{ time: '0.0s', event: 'Payload received', status: 'success' }, { time: '0.1s', event: 'SHA256 checksum calculated', status: 'info' }, { time: '0.2s', event: 'Static filename and extension heuristics evaluated', status: indicators.length ? 'warning' : 'success' }], providerStatus: 'local-static-analysis' });
+    return res.status(200).json({ id: `local-file-${Date.now()}`, threatScore: Math.min(100, threatScore), classification, malwareFamily: classification === 'Malicious' ? 'Heuristic-Detected' : 'None', explanation: indicators.length ? `${indicators.join('. ')}.` : 'No high-confidence static indicators were detected by the local analyzer.', recommendation: classification === 'Safe' ? 'Continue with normal controls and verify the file source.' : 'Quarantine the file and verify it with your enterprise malware-analysis stack before execution.', fileName, fileSize: normalizedSize, fileType, sha256, detectionStats: { malicious: classification === 'Malicious' ? 1 : 0, harmless: classification === 'Safe' ? 1 : 0, suspicious: classification === 'Suspicious' ? 1 : 0, undetected: 0 }, iocIndicators: indicators, timeline: [{ time: '0.0s', event: 'Payload received', status: 'success' }, { time: '0.1s', event: 'SHA256 checksum calculated', status: 'info' }, { time: '0.2s', event: 'Static filename and extension heuristics evaluated', status: indicators.length ? 'warning' : 'success' }], providerStatus: 'local-static-analysis' });
   } catch { return jsonError(res, 400, 'fileData is not valid base64'); }
 });
 
