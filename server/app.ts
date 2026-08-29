@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { apiRouter } from './api/index.js';
 import { env } from './config/env.js';
-import { rateLimit, securityHeaders } from './security/index.js';
+import { rateLimit, requestContext, securityHeaders } from './security/index.js';
 
 /**
  * Express application factory.
@@ -12,6 +12,7 @@ export function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use(requestContext);
   app.use(securityHeaders);
   app.use(rateLimit);
   app.use(cors({
