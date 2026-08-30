@@ -19,17 +19,30 @@ function isPrivateIPv4(address: string): boolean {
   if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
   const [a, b] = parts;
   return (
+    a === 0 ||
     a === 10 ||
     a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0) ||
     (a === 192 && b === 168) ||
-    a === 0
+    (a === 198 && b >= 18 && b <= 19) ||
+    a >= 224
   );
+}
+
+function mappedIPv4FromIPv6(address: string): string | null {
+  const value = address.toLowerCase();
+  if (!value.startsWith('::ffff:')) return null;
+  const candidate = value.slice('::ffff:'.length);
+  return net.isIP(candidate) === 4 ? candidate : null;
 }
 
 function isPrivateIPv6(address: string): boolean {
   const value = address.toLowerCase();
+  const mapped = mappedIPv4FromIPv6(value);
+  if (mapped) return isPrivateIPv4(mapped);
   return value === '::1' || value === '::' || value.startsWith('fc') || value.startsWith('fd') || value.startsWith('fe80:');
 }
 
@@ -65,7 +78,6 @@ export async function validateExternalUrl(input: string): Promise<URL> {
     throw new Error('Private or local destinations are not allowed');
   }
 
-  // Resolve hostnames before server-side fetching to reject obvious DNS targets.
   const records = await dns.lookup(hostname, { all: true, verbatim: true });
   if (records.length === 0 || records.some((record) => isBlockedIp(record.address))) {
     throw new Error('Destination resolves to a private or local address');
