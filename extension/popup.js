@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (response && response.data) {
                 setTimeout(() => {
                     displayResults(response.data);
-                }, 1500); // sync with timeline animation end
+                }, 1500);
             } else {
                 alert('CRITICAL_FAILURE: Could not communicate with background scanner.');
                 resetScanningMode();
@@ -87,61 +87,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (response && response.cache) {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(response.cache, null, 2));
                 const dlAnchorElem = document.createElement('a');
-                dlAnchorElem.setAttribute("href",     dataStr);
+                dlAnchorElem.setAttribute("href", dataStr);
                 dlAnchorElem.setAttribute("download", `cyber_shield_threat_logs_${Date.now()}.json`);
                 dlAnchorElem.click();
             }
         });
     });
 
-    // Sync scan history with Firebase
-    syncFirebaseBtn.addEventListener('click', async () => {
-        chrome.storage.local.get(['apiUrl', 'syncKey'], async (settings) => {
-            const apiUrl = settings.apiUrl || 'http://localhost:3000';
-            if (!settings.syncKey) {
-                alert("Please configure a FIREBASE_SYNC_KEY in Settings first.");
-                toggleSettings.click();
-                return;
-            }
-
-            syncFirebaseBtn.textContent = 'SYNCING...';
-            syncFirebaseBtn.disabled = true;
-
-            try {
-                // Get cached reports from extension
-                chrome.runtime.sendMessage({ action: 'getCache' }, async (cacheRes) => {
-                    const cache = cacheRes ? cacheRes.cache : {};
-                    const reports = Object.values(cache);
-
-                    if (reports.length === 0) {
-                        alert("No local scan history found to synchronize.");
-                        syncFirebaseBtn.textContent = 'SYNC_CLOUD';
-                        syncFirebaseBtn.disabled = false;
-                        return;
-                    }
-
-                    // Forward them to Node Server sync database endpoint
-                    const response = await fetch(`${apiUrl.replace(/\/$/, '')}/api/sync`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            syncKey: settings.syncKey,
-                            reports: reports
-                        })
-                    });
-
-                    if (!response.ok) throw new Error("Sync failed");
-                    const data = await response.json();
-                    alert(`Sync completed! ${data.synced} threat records archived in Cloud Firebase.`);
-                });
-            } catch (err) {
-                console.error(err);
-                alert("Sync failed. Check connection to Cyber Shield node server.");
-            } finally {
-                syncFirebaseBtn.textContent = 'SYNC_CLOUD';
-                syncFirebaseBtn.disabled = false;
-            }
-        });
+    // Cloud sync is intentionally disabled until a real server-side sync provider is configured.
+    syncFirebaseBtn.addEventListener('click', () => {
+        alert('CLOUD_SYNC_UNAVAILABLE: No server-side Firebase sync provider is configured for this build. Use EXPORT_LOGS to save scan history locally.');
     });
 });
 
@@ -151,7 +106,6 @@ function startScanningMode() {
     btn.textContent = 'SCANNING...';
     document.getElementById('results-panel').classList.add('hidden');
     
-    // Clear indicators status
     document.getElementById('connection-status').className = 'status-indicator warning';
     document.getElementById('risk-display').className = 'risk-meter warning';
     document.getElementById('risk-score').textContent = '--';
@@ -171,7 +125,6 @@ function animateTimeline() {
     const stepSsl = document.getElementById('step-ssl');
     const stepGemini = document.getElementById('step-gemini');
 
-    // Reset steps
     stepDns.className = 'step';
     stepSsl.className = 'step';
     stepGemini.className = 'step';
@@ -187,7 +140,7 @@ function displayResults(data) {
     const panel = document.getElementById('results-panel');
     panel.classList.remove('hidden');
 
-    const score = data.threatScore || 0;
+    const score = Number(data.threatScore ?? 0);
     const classification = data.classification || 'Safe';
     const brand = data.brandImpersonated || 'None';
 
@@ -198,7 +151,6 @@ function displayResults(data) {
     const verdict = document.getElementById('verdict');
     const connStatus = document.getElementById('connection-status');
 
-    // Timeline steps statuses on result
     const stepDns = document.getElementById('step-dns');
     const stepSsl = document.getElementById('step-ssl');
     const stepGemini = document.getElementById('step-gemini');
@@ -226,7 +178,6 @@ function displayResults(data) {
         connStatus.className = 'status-indicator safe';
     }
 
-    // Detail parameters
     const brandStatus = document.getElementById('brand-status');
     brandStatus.textContent = brand.toUpperCase();
     brandStatus.className = 'value ' + (brand !== 'None' ? 'danger' : 'safe');
