@@ -15,6 +15,19 @@ const MAX_ANALYSIS_HISTORY = 5000;
 const dataDirectory = path.join(process.cwd(), 'data');
 const storageFile = path.join(dataDirectory, 'analysis-history.json');
 
+function sanitizeStoredUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.username = '';
+    url.password = '';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return '[redacted]';
+  }
+}
+
 function loadAnalyses(): StoredAnalysis[] {
   try {
     if (!fs.existsSync(storageFile)) return [];
@@ -38,7 +51,9 @@ function loadAnalyses(): StoredAnalysis[] {
       );
     });
 
-    return valid.slice(-MAX_ANALYSIS_HISTORY);
+    return valid
+      .slice(-MAX_ANALYSIS_HISTORY)
+      .map((item) => ({ ...item, url: sanitizeStoredUrl(item.url) }));
   } catch (error) {
     console.error('Failed to load analysis history:', error);
     return [];
@@ -86,9 +101,10 @@ function threatTypeFromResult(result: EnrichedUrlAnalysisResult): string {
 }
 
 export function addAnalysis(result: EnrichedUrlAnalysisResult): StoredAnalysis {
+  const rawUrl = result.normalizedUrl || result.url;
   const entry: StoredAnalysis = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    url: result.normalizedUrl || result.url,
+    url: sanitizeStoredUrl(rawUrl),
     status: statusFromRisk(result.assessment.level),
     score: result.assessment.score,
     threatType: threatTypeFromResult(result),
