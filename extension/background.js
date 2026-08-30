@@ -67,6 +67,30 @@ function addBypassHostname(hostname) {
   }
 }
 
+function normalizeAnalysisResponse(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const source = payload.success === true && payload.data && typeof payload.data === 'object'
+    ? payload.data
+    : payload;
+  const assessment = source.assessment && typeof source.assessment === 'object'
+    ? source.assessment
+    : {};
+
+  const score = Number(source.threatScore ?? assessment.score ?? 0);
+  const classification = source.classification
+    || (assessment.level === 'CRITICAL' ? 'Malicious'
+      : assessment.level === 'HIGH' ? 'Phishing'
+        : assessment.level === 'MEDIUM' ? 'Suspicious' : 'Safe');
+
+  return {
+    ...source,
+    threatScore: Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0,
+    classification,
+    raw: source,
+  };
+}
+
 async function scanUrl(urlStr, tabId) {
   if (!urlStr || urlStr.startsWith('chrome') || urlStr.startsWith('about') || urlStr.startsWith('file') || urlStr.includes('block.html')) {
     return;
@@ -94,7 +118,9 @@ async function scanUrl(urlStr, tabId) {
       });
 
       if (!response.ok) throw new Error('API handshake failed');
-      const data = await response.json();
+      const payload = await response.json();
+      const data = normalizeAnalysisResponse(payload);
+      if (!data) throw new Error('Invalid analysis response');
 
       cacheScan(urlStr, data);
       handleScanResult(urlStr, data, tabId);
@@ -105,7 +131,7 @@ async function scanUrl(urlStr, tabId) {
 }
 
 function handleScanResult(urlStr, data, tabId) {
-  const score = data.threatScore || 0;
+  const score = Number(data.threatScore ?? 0);
   const classification = data.classification || 'Safe';
 
   updateBadge(tabId, score, classification);
