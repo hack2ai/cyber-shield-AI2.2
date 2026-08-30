@@ -80,7 +80,10 @@ function normalizeTopic(value: unknown): string {
 
 trainingRouter.post('/generate-quiz', (req: Request, res: Response) => {
   const topic = normalizeTopic(req.body?.topic);
-  const quiz = QUIZZES[topic];
+  const quiz = QUIZZES[topic].map(({ question, options }) => ({
+    question,
+    options: [...options],
+  }));
 
   res.status(200).json({
     topic,
