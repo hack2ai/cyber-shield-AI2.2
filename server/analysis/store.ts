@@ -50,9 +50,17 @@ let analyses: StoredAnalysis[] = loadAnalyses();
 function persistAnalyses(): void {
   try {
     fs.mkdirSync(dataDirectory, { recursive: true });
-    const temporaryFile = `${storageFile}.tmp`;
-    fs.writeFileSync(temporaryFile, `${JSON.stringify(analyses, null, 2)}\n`, 'utf8');
-    fs.renameSync(temporaryFile, storageFile);
+    const temporaryFile = `${storageFile}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+    try {
+      fs.writeFileSync(temporaryFile, `${JSON.stringify(analyses, null, 2)}\n`, 'utf8');
+      fs.renameSync(temporaryFile, storageFile);
+    } finally {
+      try {
+        if (fs.existsSync(temporaryFile)) fs.unlinkSync(temporaryFile);
+      } catch {
+        // Best-effort cleanup; the persisted file remains the source of truth.
+      }
+    }
   } catch (error) {
     console.error('Failed to persist analysis history:', error);
   }
