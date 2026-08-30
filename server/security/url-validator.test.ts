@@ -10,6 +10,19 @@ describe('SSRF IP protection', () => {
     expect(isBlockedIp('169.254.169.254')).toBe(true);
   });
 
+  it('blocks reserved IPv4 ranges', () => {
+    expect(isBlockedIp('100.64.0.1')).toBe(true);
+    expect(isBlockedIp('192.0.0.1')).toBe(true);
+    expect(isBlockedIp('198.18.0.1')).toBe(true);
+    expect(isBlockedIp('224.0.0.1')).toBe(true);
+  });
+
+  it('blocks IPv4-mapped IPv6 private destinations', () => {
+    expect(isBlockedIp('::ffff:127.0.0.1')).toBe(true);
+    expect(isBlockedIp('::ffff:10.0.0.8')).toBe(true);
+    expect(isBlockedIp('::ffff:169.254.169.254')).toBe(true);
+  });
+
   it('blocks local IPv6 addresses', () => {
     expect(isBlockedIp('::1')).toBe(true);
     expect(isBlockedIp('fc00::1')).toBe(true);
