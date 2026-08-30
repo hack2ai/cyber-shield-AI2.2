@@ -87,7 +87,7 @@ async function scanUrl(urlStr, tabId) {
   chrome.storage.local.get(['apiUrl'], async (res) => {
     const apiUrl = res.apiUrl || DEFAULT_API_URL;
     try {
-      const response = await fetch(`${apiUrl.replace(/\/$/, '')}/api/analyze`, {
+      const response = await fetch(`${apiUrl.replace(/\/$/, '')}/api/analysis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: urlStr })
