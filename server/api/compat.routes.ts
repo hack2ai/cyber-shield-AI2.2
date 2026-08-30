@@ -83,15 +83,20 @@ compatRouter.post('/email-header-check', (req: Request, res: Response) => {
   return res.status(200).json({ rawHeaders, spf: /spf=pass/i.test(authenticationResults) ? 'PASS' : /spf=fail|softfail/i.test(authenticationResults) ? 'FAIL' : 'UNKNOWN', dkim: /dkim=pass/i.test(authenticationResults) ? 'PASS' : /dkim=fail/i.test(authenticationResults) ? 'FAIL' : 'UNKNOWN', dmarc: /dmarc=pass/i.test(authenticationResults) ? 'PASS' : /dmarc=fail/i.test(authenticationResults) ? 'FAIL' : 'UNKNOWN', senderIp, hopsCount: receivedHops, hops: (normalized.match(/^Received:.+$/gim) ?? []).map((line) => line.replace(/^Received:\s*/i, '').trim()), threatScore, classification, explanation: indicators.length === 0 ? 'Header authentication indicators did not reveal a high-confidence spoofing pattern in the supplied headers.' : `Header analysis identified ${indicators.length} warning indicator(s). Review the authentication chain before trusting the message.`, spoofingIndicators: indicators, recommendations: indicators.length === 0 ? ['Verify the sender through an independent trusted channel before acting on sensitive requests.'] : ['Do not trust links or attachments until the sender is verified.', 'Review SPF, DKIM, and DMARC alignment at the mail gateway.'] });
 });
 
+function isCanonicalBase64(value: string): boolean {
+  return value.length > 0 && value.length % 4 === 0 && /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value);
+}
+
 compatRouter.post('/analyze-file', (req: Request, res: Response) => {
   const fileData = text(req.body?.fileData);
   const fileName = text(req.body?.fileName) || 'unknown.bin';
   const fileType = text(req.body?.fileType) || 'application/octet-stream';
   const fileSize = Number(req.body?.fileSize ?? 0);
   if (!fileData) return jsonError(res, 400, 'fileData is required');
+  if (!isCanonicalBase64(fileData)) return jsonError(res, 400, 'fileData must be valid base64');
   if (fileName.length > 256) return jsonError(res, 400, 'fileName is too long');
   if (fileType.length > 128) return jsonError(res, 400, 'fileType is too long');
-  if (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > MAX_FILE_BYTES) return jsonError(res, 413, 'file exceeds 10MB limit');
+  if (!Number.isSafeInteger(fileSize) || fileSize < 0 || fileSize > MAX_FILE_BYTES) return jsonError(res, 413, 'file exceeds 10MB limit');
   try {
     const bytes = Buffer.from(fileData, 'base64');
     if (bytes.byteLength > MAX_FILE_BYTES) return jsonError(res, 413, 'decoded file exceeds 10MB limit');
