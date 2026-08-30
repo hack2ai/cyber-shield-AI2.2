@@ -9,11 +9,15 @@ const CLEANUP_INTERVAL_MS = 60_000;
 let lastCleanupAt = 0;
 
 function cleanupExpiredBuckets(now: number): void {
-  if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
-  lastCleanupAt = now;
-
   for (const [key, bucket] of buckets) {
     if (bucket.resetAt <= now) buckets.delete(key);
+  }
+  lastCleanupAt = now;
+}
+
+function cleanupIfDue(now: number): void {
+  if (now - lastCleanupAt >= CLEANUP_INTERVAL_MS) {
+    cleanupExpiredBuckets(now);
   }
 }
 
@@ -25,15 +29,20 @@ function cleanupExpiredBuckets(now: number): void {
  */
 export const rateLimit: RequestHandler = (req, res, next) => {
   const now = Date.now();
-  cleanupExpiredBuckets(now);
+  cleanupIfDue(now);
 
   const key = req.ip || req.socket.remoteAddress || 'unknown';
   const current = buckets.get(key);
 
   if (!current || current.resetAt <= now) {
     if (!current && buckets.size >= MAX_BUCKETS) {
-      res.setHeader('Retry-After', String(Math.max(1, Math.ceil(WINDOW_MS / 1000))));
-      return res.status(503).json({ error: 'Rate limiter temporarily unavailable.' });
+      // The periodic cleanup may have run recently; reclaim expired buckets
+      // immediately before treating the store as genuinely full.
+      cleanupExpiredBuckets(now);
+      if (buckets.size >= MAX_BUCKETS) {
+        res.setHeader('Retry-After', String(Math.max(1, Math.ceil(WINDOW_MS / 1000))));
+        return res.status(503).json({ error: 'Rate limiter temporarily unavailable.' });
+      }
     }
 
     buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
