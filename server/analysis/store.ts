@@ -11,6 +11,7 @@ export interface StoredAnalysis {
   createdAt: string;
 }
 
+const MAX_ANALYSIS_HISTORY = 5000;
 const dataDirectory = path.join(process.cwd(), 'data');
 const storageFile = path.join(dataDirectory, 'analysis-history.json');
 
@@ -24,7 +25,7 @@ function loadAnalyses(): StoredAnalysis[] {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter((item): item is StoredAnalysis => {
+    const valid = parsed.filter((item): item is StoredAnalysis => {
       if (!item || typeof item !== 'object') return false;
       const value = item as Record<string, unknown>;
       return (
@@ -36,6 +37,8 @@ function loadAnalyses(): StoredAnalysis[] {
         typeof value.createdAt === 'string'
       );
     });
+
+    return valid.slice(-MAX_ANALYSIS_HISTORY);
   } catch (error) {
     console.error('Failed to load analysis history:', error);
     return [];
@@ -85,6 +88,9 @@ export function addAnalysis(result: EnrichedUrlAnalysisResult): StoredAnalysis {
   };
 
   analyses.push(entry);
+  if (analyses.length > MAX_ANALYSIS_HISTORY) {
+    analyses = analyses.slice(-MAX_ANALYSIS_HISTORY);
+  }
   persistAnalyses();
   return entry;
 }
