@@ -16,18 +16,27 @@ function getHostname(urlStr) {
 
 function updateBadge(tabId, score, classification) {
   let badgeText = 'SAFE';
-  let badgeColor = '#39FF14'; // Neon Green
+  let badgeColor = '#39FF14';
 
   if (score > 70 || classification === 'Phishing' || classification === 'Malicious') {
     badgeText = 'RISK';
-    badgeColor = '#ff3131'; // Neon Red
+    badgeColor = '#ff3131';
   } else if (score > 30 || classification === 'Suspicious') {
     badgeText = 'WARN';
-    badgeColor = '#ffb100'; // Amber Warning
+    badgeColor = '#ffb100';
   }
 
   chrome.action.setBadgeText({ tabId, text: badgeText });
   chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor });
+}
+
+function isTrustedExtensionSender(sender) {
+  return sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(`chrome-extension://${chrome.runtime.id}/`);
+}
+
+function getSenderTabUrl(sender) {
+  const tabUrl = sender.tab?.url;
+  return typeof tabUrl === 'string' ? tabUrl : null;
 }
 
 async function scanUrl(urlStr, tabId) {
@@ -41,14 +50,12 @@ async function scanUrl(urlStr, tabId) {
     return;
   }
 
-  // Check cache
   if (scanCache[urlStr]) {
     const cached = scanCache[urlStr];
     handleScanResult(urlStr, cached, tabId);
     return;
   }
 
-  // Get API URL
   chrome.storage.local.get(['apiUrl'], async (res) => {
     const apiUrl = res.apiUrl || DEFAULT_API_URL;
     try {
@@ -57,11 +64,10 @@ async function scanUrl(urlStr, tabId) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: urlStr })
       });
-      
+
       if (!response.ok) throw new Error('API handshake failed');
       const data = await response.json();
-      
-      // Cache response
+
       scanCache[urlStr] = data;
       handleScanResult(urlStr, data, tabId);
     } catch (err) {
@@ -73,17 +79,15 @@ async function scanUrl(urlStr, tabId) {
 function handleScanResult(urlStr, data, tabId) {
   const score = data.threatScore || 0;
   const classification = data.classification || 'Safe';
-  
+
   updateBadge(tabId, score, classification);
 
   if (score > 70 || classification === 'Phishing' || classification === 'Malicious') {
     const hostname = getHostname(urlStr);
     if (hostname && !bypassList.has(hostname)) {
-      // Redirect tab to warning block page
       const blockUrl = chrome.runtime.getURL(`block.html?url=${encodeURIComponent(urlStr)}&score=${score}&class=${encodeURIComponent(classification)}&brand=${encodeURIComponent(data.brandImpersonated || 'None')}`);
       chrome.tabs.update(tabId, { url: blockUrl });
 
-      // Native browser notification
       chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icon.png',
@@ -95,14 +99,13 @@ function handleScanResult(urlStr, data, tabId) {
   }
 }
 
-// Navigation event hooks
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-  if (details.frameId === 0) { // Only main frame navigation
+  if (details.frameId === 0) {
     scanUrl(details.url, details.tabId);
   }
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.url) {
     scanUrl(changeInfo.url, tabId);
   }
@@ -121,17 +124,51 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   });
 });
 
-// Runtime messages receiver
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || typeof message.action !== 'string') {
+    return;
+  }
+
   if (message.action === 'bypass') {
-    const hostname = getHostname(message.url);
-    if (hostname) {
-      bypassList.add(hostname);
+    if (!isTrustedExtensionSender(sender)) {
+      sendResponse({ error: 'Unauthorized sender' });
+      return;
     }
+
+    const hostname = getHostname(typeof message.url === 'string' ? message.url : '');
+    if (!hostname) {
+      sendResponse({ error: 'Invalid URL' });
+      return;
+    }
+
+    bypassList.add(hostname);
     sendResponse({ status: 'ok' });
-  } else if (message.action === 'getCache') {
-    sendResponse({ cache: scanCache });
-  } else if (message.action === 'scanCurrent') {
+    return;
+  }
+
+  if (message.action === 'getCache') {
+    if (isTrustedExtensionSender(sender)) {
+      sendResponse({ cache: scanCache });
+      return;
+    }
+
+    const tabUrl = getSenderTabUrl(sender);
+    if (!tabUrl) {
+      sendResponse({ error: 'No tab context' });
+      return;
+    }
+
+    const current = scanCache[tabUrl];
+    sendResponse({ cache: current ? { [tabUrl]: current } : {} });
+    return;
+  }
+
+  if (message.action === 'scanCurrent') {
+    if (!isTrustedExtensionSender(sender)) {
+      sendResponse({ error: 'Unauthorized sender' });
+      return;
+    }
+
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (tabs[0] && tabs[0].url) {
         await scanUrl(tabs[0].url, tabs[0].id);
@@ -141,6 +178,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ error: 'No active tab found' });
       }
     });
-    return true; // Keep response channel open async
+    return true;
   }
 });
