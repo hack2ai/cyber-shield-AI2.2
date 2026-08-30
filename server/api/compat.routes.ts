@@ -8,6 +8,7 @@ compatRouter.use(rateLimit);
 
 const MAX_ASSISTANT_MESSAGE_LENGTH = 4_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_ANALYTICS_COUNT = 1_000_000_000;
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -109,11 +110,25 @@ compatRouter.post('/analyze-file', (req: Request, res: Response) => {
   } catch { return jsonError(res, 400, 'fileData is not valid base64'); }
 });
 
+function parseAnalyticsCount(value: unknown, field: string): number | null {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > MAX_ANALYTICS_COUNT) {
+    return null;
+  }
+  return value;
+}
+
 compatRouter.post('/threat-analytics/predict', (req: Request, res: Response) => {
-  const metrics = req.body?.metrics ?? {};
-  const total = Number(metrics.totalScans ?? 0);
-  const malicious = Number(metrics.maliciousCount ?? 0);
-  const suspicious = Number(metrics.suspiciousCount ?? 0);
+  const metrics = req.body?.metrics;
+  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics)) return jsonError(res, 400, 'metrics object is required');
+
+  const total = parseAnalyticsCount(metrics.totalScans, 'totalScans');
+  const malicious = parseAnalyticsCount(metrics.maliciousCount, 'maliciousCount');
+  const suspicious = parseAnalyticsCount(metrics.suspiciousCount, 'suspiciousCount');
+  if (total === null || malicious === null || suspicious === null) {
+    return jsonError(res, 400, 'analytics metrics must be non-negative safe integers within the supported range');
+  }
+  if (malicious + suspicious > total) return jsonError(res, 400, 'maliciousCount plus suspiciousCount cannot exceed totalScans');
+
   const risk = total > 0 ? Math.round(((malicious + suspicious) / total) * 100) : 0;
   const baseline = Math.max(5, Math.min(95, Math.round((total + malicious * 3 + suspicious * 2) / 2)));
   return res.status(200).json({ insights: [`Current telemetry contains ${total} recorded scan(s) with a ${risk}% combined suspicious/malicious ratio.`, malicious === 0 ? 'No malicious classifications are currently present in the synchronized local dataset.' : `${malicious} malicious classification(s) require prioritization.`, suspicious === 0 ? 'No suspicious classifications are currently present in the synchronized local dataset.' : `${suspicious} suspicious classification(s) warrant follow-up review.`], recommendations: ['Continue validating new findings against independent threat-intelligence sources.', 'Keep browser, endpoint, and mail security controls patched and monitored.'], predictions: [0, 1, 2, 3, 4, 5, 6].map((offset) => Math.max(0, baseline + offset * Math.max(1, Math.round((malicious + suspicious) / Math.max(1, total))))), threatScoreForecast: baseline, provider: 'local-heuristic-predictor' });
