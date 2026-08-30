@@ -35,6 +35,24 @@ export function createApp() {
   });
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const errorType = error && typeof error === 'object' && 'type' in error
+      ? String((error as { type?: unknown }).type)
+      : '';
+    const statusCode = error && typeof error === 'object' && 'status' in error
+      && Number.isInteger((error as { status?: unknown }).status)
+      ? Number((error as { status: number }).status)
+      : 0;
+
+    if (errorType === 'entity.too.large' || statusCode === 413) {
+      res.status(413).json({ error: 'Request payload is too large.' });
+      return;
+    }
+
+    if (errorType === 'entity.parse.failed' || statusCode === 400) {
+      res.status(400).json({ error: 'Malformed JSON request body.' });
+      return;
+    }
+
     logger.error('Unhandled API error', {
       requestId: res.locals.requestId,
       error: error instanceof Error ? error.message : String(error),
