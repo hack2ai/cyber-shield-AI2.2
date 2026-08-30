@@ -1,4 +1,6 @@
+import dns from 'node:dns/promises';
 import tls from 'node:tls';
+import { isBlockedIp } from '../security/index.js';
 
 export interface TlsAnalysisResult {
   hostname: string;
@@ -16,10 +18,34 @@ export interface TlsAnalysisResult {
 
 const TLS_TIMEOUT_MS = 7000;
 
-export function analyzeTls(hostname: string, port = 443): Promise<TlsAnalysisResult> {
+export async function analyzeTls(hostname: string, port = 443): Promise<TlsAnalysisResult> {
   const normalized = hostname.trim().toLowerCase().replace(/\.$/, '');
   if (!normalized || normalized.length > 253) {
-    return Promise.reject(new Error('Invalid TLS hostname'));
+    throw new Error('Invalid TLS hostname');
+  }
+
+  let resolvedAddress: { address: string; family: 4 | 6 };
+  try {
+    const records = await dns.lookup(normalized, { all: true, verbatim: true });
+    const safe = records.find((record) => !isBlockedIp(record.address) && (record.family === 4 || record.family === 6));
+    if (!safe || (safe.family !== 4 && safe.family !== 6)) {
+      throw new Error('Destination did not resolve to a public address');
+    }
+    resolvedAddress = { address: safe.address, family: safe.family };
+  } catch (error) {
+    return {
+      hostname: normalized,
+      port,
+      authorized: false,
+      protocol: null,
+      cipher: null,
+      issuer: null,
+      subject: null,
+      validFrom: null,
+      validTo: null,
+      fingerprint256: null,
+      error: error instanceof Error ? error.message : 'TLS DNS resolution failed',
+    };
   }
 
   return new Promise((resolve) => {
@@ -30,6 +56,7 @@ export function analyzeTls(hostname: string, port = 443): Promise<TlsAnalysisRes
       servername: normalized,
       rejectUnauthorized: false,
       timeout: TLS_TIMEOUT_MS,
+      lookup: (_hostname, _options, callback) => callback(null, resolvedAddress.address, resolvedAddress.family),
     });
 
     const finish = (result: TlsAnalysisResult) => {
