@@ -17,16 +17,11 @@ function cleanupExpiredBuckets(now: number): void {
   }
 }
 
-function evictOldestBucket(): boolean {
-  const first = buckets.keys().next().value as string | undefined;
-  if (!first) return false;
-  buckets.delete(first);
-  return true;
-}
-
 /**
  * Dependency-free baseline limiter. Multi-instance production deployments
  * should use a shared/proxied limiter (for example Redis-backed) instead.
+ * Active client buckets are never evicted when the bounded store is full;
+ * this prevents high-cardinality traffic from clearing other clients' limits.
  */
 export const rateLimit: RequestHandler = (req, res, next) => {
   const now = Date.now();
@@ -36,7 +31,8 @@ export const rateLimit: RequestHandler = (req, res, next) => {
   const current = buckets.get(key);
 
   if (!current || current.resetAt <= now) {
-    if (!current && buckets.size >= MAX_BUCKETS && !evictOldestBucket()) {
+    if (!current && buckets.size >= MAX_BUCKETS) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil(WINDOW_MS / 1000))));
       return res.status(503).json({ error: 'Rate limiter temporarily unavailable.' });
     }
 
