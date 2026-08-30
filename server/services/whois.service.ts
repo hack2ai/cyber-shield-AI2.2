@@ -43,47 +43,49 @@ function stringArray(value: unknown): string[] {
   return single ? [single] : [];
 }
 
-async function runWithWhoisSlot<T>(operation: () => Promise<T>): Promise<T> {
-  if (activeWhois >= MAX_CONCURRENT_WHOIS && whoisQueue.length >= MAX_QUEUED_WHOIS) {
+async function acquireWhoisSlot(): Promise<void> {
+  if (activeWhois < MAX_CONCURRENT_WHOIS) {
+    activeWhois += 1;
+    return;
+  }
+
+  if (whoisQueue.length >= MAX_QUEUED_WHOIS) {
     throw new Error('WHOIS lookup capacity is temporarily exhausted');
   }
 
   await new Promise<void>((resolve) => {
-    if (activeWhois < MAX_CONCURRENT_WHOIS) {
-      activeWhois += 1;
-      resolve();
-      return;
-    }
     whoisQueue.push(() => {
       activeWhois += 1;
       resolve();
     });
   });
+}
 
-  try {
-    return await operation();
-  } finally {
-    activeWhois -= 1;
-    const next = whoisQueue.shift();
-    if (next) next();
-  }
+function releaseWhoisSlot(): void {
+  activeWhois -= 1;
+  const next = whoisQueue.shift();
+  if (next) next();
 }
 
 async function lookupWhois(domain: string): Promise<Record<string, unknown>> {
-  return runWithWhoisSlot(async () => {
-    const lookup = whois(domain) as Promise<Record<string, unknown>>;
-    let timer: NodeJS.Timeout | undefined;
-    try {
-      return await Promise.race([
-        lookup,
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error('WHOIS lookup timed out')), WHOIS_TIMEOUT_MS);
-        }),
-      ]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  });
+  await acquireWhoisSlot();
+
+  const lookup = whois(domain) as Promise<Record<string, unknown>>;
+  // whois-json does not expose an AbortSignal, so the timeout bounds the caller
+  // but the concurrency slot remains occupied until the underlying operation settles.
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('WHOIS lookup timed out')), WHOIS_TIMEOUT_MS);
+    });
+    return await Promise.race([lookup, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    lookup.then(
+      () => releaseWhoisSlot(),
+      () => releaseWhoisSlot(),
+    );
+  }
 }
 
 export async function analyzeWhois(domain: string): Promise<WhoisAnalysisResult> {
