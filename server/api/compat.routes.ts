@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 export const compatRouter = Router();
 compatRouter.use(rateLimit);
 
+const MAX_ASSISTANT_MESSAGE_LENGTH = 4_000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 function text(value: unknown): string {
@@ -29,6 +30,7 @@ function assistantFallback(message: string): string {
 compatRouter.post('/assistant', (req: Request, res: Response) => {
   const message = text(req.body?.message);
   if (!message) return jsonError(res, 400, 'message is required');
+  if (message.length > MAX_ASSISTANT_MESSAGE_LENGTH) return jsonError(res, 413, 'message is too long');
   res.status(200).json({ reply: assistantFallback(message), provider: 'local-advisor' });
 });
 
