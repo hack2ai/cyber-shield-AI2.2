@@ -56,9 +56,22 @@ async function getJson<T>(url: string): Promise<T> {
 interface VirusTotalResponse {
   data?: {
     attributes?: {
-      last_analysis_stats?: Partial<Record<keyof Pick<VirusTotalStats, 'malicious' | 'suspicious' | 'harmless' | 'undetected'>, number>>;
+      last_analysis_stats?: Partial<Record<keyof Pick<VirusTotalStats, 'malicious' | 'suspicious' | 'harmless' | 'undetected'>, unknown>>;
     };
   };
+}
+
+function normalizeCount(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  }
+
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+    const parsed = Number(value.trim());
+    return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
+  }
+
+  return 0;
 }
 
 export async function getDomainReputation(domain: string): Promise<VirusTotalStats> {
@@ -78,10 +91,10 @@ export async function getDomainReputation(domain: string): Promise<VirusTotalSta
     const stats = result.data?.attributes?.last_analysis_stats ?? {};
 
     return {
-      malicious: Number(stats.malicious ?? 0),
-      suspicious: Number(stats.suspicious ?? 0),
-      harmless: Number(stats.harmless ?? 0),
-      undetected: Number(stats.undetected ?? 0),
+      malicious: normalizeCount(stats.malicious),
+      suspicious: normalizeCount(stats.suspicious),
+      harmless: normalizeCount(stats.harmless),
+      undetected: normalizeCount(stats.undetected),
       timeout: false,
       status: 'ok',
     };
