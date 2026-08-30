@@ -1,6 +1,9 @@
 // Cyber Shield Live Protection background service worker
 const DEFAULT_API_URL = 'http://localhost:3000';
+const MAX_SCAN_CACHE_ENTRIES = 250;
+const MAX_BYPASS_ENTRIES = 100;
 const scanCache = {}; // Cache: URL string -> AnalysisResult
+const cacheOrder = [];
 const bypassList = new Set(); // Bypassed hostnames
 
 console.log("CYBER SHIELD: Background service worker active.");
@@ -39,6 +42,31 @@ function getSenderTabUrl(sender) {
   return typeof tabUrl === 'string' ? tabUrl : null;
 }
 
+function cacheScan(urlStr, data) {
+  if (Object.prototype.hasOwnProperty.call(scanCache, urlStr)) {
+    const existingIndex = cacheOrder.indexOf(urlStr);
+    if (existingIndex >= 0) cacheOrder.splice(existingIndex, 1);
+  }
+
+  scanCache[urlStr] = data;
+  cacheOrder.push(urlStr);
+
+  while (cacheOrder.length > MAX_SCAN_CACHE_ENTRIES) {
+    const oldestUrl = cacheOrder.shift();
+    if (oldestUrl) delete scanCache[oldestUrl];
+  }
+}
+
+function addBypassHostname(hostname) {
+  if (bypassList.has(hostname)) return;
+  bypassList.add(hostname);
+
+  if (bypassList.size > MAX_BYPASS_ENTRIES) {
+    const oldest = bypassList.values().next().value;
+    if (typeof oldest === 'string') bypassList.delete(oldest);
+  }
+}
+
 async function scanUrl(urlStr, tabId) {
   if (!urlStr || urlStr.startsWith('chrome') || urlStr.startsWith('about') || urlStr.startsWith('file') || urlStr.includes('block.html')) {
     return;
@@ -68,7 +96,7 @@ async function scanUrl(urlStr, tabId) {
       if (!response.ok) throw new Error('API handshake failed');
       const data = await response.json();
 
-      scanCache[urlStr] = data;
+      cacheScan(urlStr, data);
       handleScanResult(urlStr, data, tabId);
     } catch (err) {
       console.error('Scan error:', err);
@@ -141,7 +169,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
-    bypassList.add(hostname);
+    addBypassHostname(hostname);
     sendResponse({ status: 'ok' });
     return;
   }
