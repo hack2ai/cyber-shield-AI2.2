@@ -14,6 +14,19 @@ export interface DashboardStats {
   }[];
 }
 
+function sanitizeDashboardUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    url.username = '';
+    url.password = '';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return '[redacted]';
+  }
+}
+
 export function getDashboardStats(): DashboardStats {
   const scans = getAllAnalyses();
   const totalScans = scans.length;
@@ -38,7 +51,7 @@ export function getDashboardStats(): DashboardStats {
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
     .slice(0, 10)
     .map((item) => ({
-      url: item.url,
+      url: sanitizeDashboardUrl(item.url),
       status: item.status,
       score: item.score,
       date: item.createdAt,
