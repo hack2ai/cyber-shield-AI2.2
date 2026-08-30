@@ -19,7 +19,10 @@ export function createApp() {
   app.use(cors({
     origin: env.allowedOrigins.length > 0 ? env.allowedOrigins : false,
   }));
-  app.use(express.json({ limit: '10mb' }));
+  // JSON-encoded files use base64, which expands a 10 MB binary payload to
+  // roughly 13.34 MB before JSON framing. Keep a narrow envelope above that
+  // documented file limit; individual routes still enforce their own limits.
+  app.use(express.json({ limit: '14mb' }));
 
   app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', service: 'cyber-shield-ai' });
