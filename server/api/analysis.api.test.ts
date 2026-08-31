@@ -132,4 +132,26 @@ describe('POST /api/analysis', () => {
       await closeServer(server);
     }
   });
+
+  it('rejects a non-string URL with 400', async () => {
+    const { server, baseUrl } = await startServer();
+    try {
+      const response = await fetch(`${baseUrl}/api/analysis`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: 12345 }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.success).toBe(false);
+      expect(body.version).toBe('v1');
+      expect(body.error.code).toBe('INVALID_REQUEST');
+      expect(body.error.message).toBe('url must be a string');
+      expect(mockValidateExternalUrl).not.toHaveBeenCalled();
+      expect(mockAnalyzeUrlEnriched).not.toHaveBeenCalled();
+    } finally {
+      await closeServer(server);
+    }
+  });
 });
