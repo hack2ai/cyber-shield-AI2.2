@@ -25,6 +25,21 @@ describe('POST /api/analysis', () => {
     vi.clearAllMocks();
   });
 
+  async function startServer() {
+    const server = createServer(createApp());
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+      throw new Error('Unable to determine test server port');
+    }
+    return { server, baseUrl: `http://127.0.0.1:${address.port}` };
+  }
+
+  async function closeServer(server: ReturnType<typeof createServer>) {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+
   it('returns a versioned typed analysis response for a valid request', async () => {
     mockValidateExternalUrl.mockResolvedValue(new URL('https://example.com/'));
     mockAnalyzeUrlEnriched.mockResolvedValue({
@@ -53,13 +68,9 @@ describe('POST /api/analysis', () => {
       },
     });
 
-    const server = createServer(createApp());
-    await new Promise<void>((resolve) => server.listen(0, resolve));
-
+    const { server, baseUrl } = await startServer();
     try {
-      const address = server.address();
-      if (!address || typeof address === 'string') throw new Error('Unable to determine test server port');
-      const response = await fetch(`http://127.0.0.1:${address.port}/api/analysis`, {
+      const response = await fetch(`${baseUrl}/api/analysis`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url: 'https://example.com' }),
@@ -74,18 +85,14 @@ describe('POST /api/analysis', () => {
       expect(mockValidateExternalUrl).toHaveBeenCalledWith('https://example.com');
       expect(mockAnalyzeUrlEnriched).toHaveBeenCalledWith(expect.any(URL));
     } finally {
-      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+      await closeServer(server);
     }
   });
 
   it('rejects a malformed request with the v1 error envelope', async () => {
-    const server = createServer(createApp());
-    await new Promise<void>((resolve) => server.listen(0, resolve));
-
+    const { server, baseUrl } = await startServer();
     try {
-      const address = server.address();
-      if (!address || typeof address === 'string') throw new Error('Unable to determine test server port');
-      const response = await fetch(`http://127.0.0.1:${address.port}/api/analysis`, {
+      const response = await fetch(`${baseUrl}/api/analysis`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url: '' }),
@@ -95,11 +102,34 @@ describe('POST /api/analysis', () => {
       expect(response.status).toBe(400);
       expect(body.success).toBe(false);
       expect(body.version).toBe('v1');
-      expect(body.error.code).toBe('INVALID_URL');
+      expect(body.error.code).toBe('INVALID_REQUEST');
+      expect(body.error.message).toBe('url is required');
       expect(mockValidateExternalUrl).not.toHaveBeenCalled();
       expect(mockAnalyzeUrlEnriched).not.toHaveBeenCalled();
     } finally {
-      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+      await closeServer(server);
+    }
+  });
+
+  it('rejects a non-object JSON body with 400', async () => {
+    const { server, baseUrl } = await startServer();
+    try {
+      const response = await fetch(`${baseUrl}/api/analysis`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(['https://example.com']),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.success).toBe(false);
+      expect(body.version).toBe('v1');
+      expect(body.error.code).toBe('INVALID_REQUEST');
+      expect(body.error.message).toBe('Request body must be a JSON object');
+      expect(mockValidateExternalUrl).not.toHaveBeenCalled();
+      expect(mockAnalyzeUrlEnriched).not.toHaveBeenCalled();
+    } finally {
+      await closeServer(server);
     }
   });
 });
