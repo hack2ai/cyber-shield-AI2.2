@@ -72,14 +72,55 @@ function cn(...inputs: ClassValue[]) {
 }
 
 function isMockSessionUser(user: { uid: string } | null | undefined) {
-  const isLocalBrowser = typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-  return isLocalBrowser || (!!user && (
+  return !!user && (
     user.uid === 'mock-analyst-1337' ||
     user.uid.startsWith('mock-user-')
-  ));
+  );
 }
+
+function adaptServerAnalysis(payload: any, target: string): AnalysisResult {
+  const d = payload?.data ?? payload;
+  const a = d?.assessment ?? {};
+  const intel = d?.threatIntelligence ?? {};
+  const dns = intel.dns ?? {};
+  const tls = intel.tls ?? {};
+  const whois = intel.whois ?? {};
+  const vt = intel.virusTotal ?? {};
+  const redirects = d?.redirects ?? {};
+  const findings: any[] = Array.isArray(a.findings) ? a.findings : (Array.isArray(d?.findings) ? d.findings : []);
+  const score = Math.max(0, Math.min(100, Math.round(Number(a.score ?? 0))));
+  const classification: AnalysisResult['classification'] =
+    score >= 80 ? 'Malicious' : score >= 60 ? 'Phishing' : score >= 35 ? 'Suspicious' : 'Safe';
+  const ips = [...(dns.ipv4 ?? []), ...(dns.ipv6 ?? [])];
+
+  return {
+    threatScore: score,
+    classification,
+    explanation: findings.length
+      ? 'Analysis of ' + target + ' found ' + findings.length + ' risk signal(s): ' + findings.map((x) => x.label).join('; ') + '.'
+      : 'No risk signals were found for ' + target + ' in the checks that ran.',
+    recommendation: score >= 60
+      ? 'Do not enter credentials or download files from this target. Report it to your security team.'
+      : score >= 35
+        ? 'Treat with caution and verify the sender or source before interacting.'
+        : 'No immediate action required. Continue to monitor.',
+    riskIndicators: findings.map((x) => String(x.label)),
+    type: 'url',
+    target,
+    brandImpersonated: 'None',
+    visualIndicators: [],
+    technicalSummary: {
+      dns: ips.length ? 'Resolved to ' + ips.join(', ') : (dns.errors?.[0] ?? 'No DNS records resolved'),
+      ssl: tls.error ? 'TLS error: ' + tls.error : tls.validTo ? ((tls.authorized ? 'Trusted' : 'Not trusted') + ' certificate, valid until ' + tls.validTo) : 'No TLS data',
+      whois: whois.createdAt ? 'Registered ' + whois.createdAt + (whois.registrar ? ' via ' + whois.registrar : '') : (whois.error ?? 'WHOIS data unavailable'),
+      threatIntel: vt.status === 'ok'
+        ? 'VirusTotal: ' + vt.malicious + ' malicious, ' + vt.suspicious + ' suspicious, ' + vt.harmless + ' harmless'
+        : 'VirusTotal ' + (vt.status ?? 'unavailable') + (redirects.redirectCount ? '; ' + redirects.redirectCount + ' redirect(s)' : ''),
+    },
+    raw: { dns, ssl: tls, ct: [], whois, heuristics: d?.features ?? {} },
+  } as AnalysisResult;
+}
+
 
 function getDomainAge(creationDate: string | undefined) {
   if (!creationDate) return null;
@@ -2528,7 +2569,7 @@ export default function App() {
       let serverData;
       let isFallback = false;
       try {
-        const response = await fetch('/api/analyze', {
+        const response = await fetch('/api/analysis', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: finalUrl })
@@ -2536,10 +2577,10 @@ export default function App() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `SERVER_ERROR_${response.status}`);
+          throw new Error(errorData?.error?.message || (typeof errorData?.error === 'string' ? errorData.error : `SERVER_ERROR_${response.status}`));
         }
 
-        serverData = await response.json();
+        serverData = adaptServerAnalysis(await response.json(), finalUrl);
         addLog("SERVER_INTEL_GATHERING_COMPLETE.");
       } catch (fetchErr) {
         console.warn("Server pipeline unreachable/failed. Re-routing through client-side heuristics core:", fetchErr);

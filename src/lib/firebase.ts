@@ -37,6 +37,7 @@ async function testConnection() {
 testConnection();
 
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export const signInWithGoogle = async () => {
   try {
@@ -76,6 +77,7 @@ export const signInWithGoogle = async () => {
         `Once added, AUTH_INIT will work instantly!`;
       console.warn(alertMsg);
       console.error(alertMsg);
+      alert(alertMsg);
       return null;
     }
 

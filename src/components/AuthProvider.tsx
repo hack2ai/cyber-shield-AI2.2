@@ -95,17 +95,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const mockEmail = localStorage.getItem('cyber_shield_mock_user_email');
-    if (mockEmail) {
-      activateMockSession(mockEmail);
-      return;
-    }
-
-    const isGuest = localStorage.getItem('cyber_shield_guest_session');
-    if (isGuest === 'true') {
-      activateGuestSession();
-      return;
-    }
+    // Real auth only: discard any leftover demo/guest sessions from earlier versions.
+    localStorage.removeItem('cyber_shield_mock_user_email');
+    localStorage.removeItem('cyber_shield_guest_session');
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -152,45 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
-    const emailInput = window.prompt("Enter email address to log in:");
-    
-    if (emailInput !== null) {
-      const email = emailInput.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
-      if (email && emailRegex.test(email)) {
-        activateMockSession(email);
-        return;
-      } else if (email) {
-        alert("Invalid email format! Please enter a valid email address (e.g. user@example.com).");
-        return;
-      }
-    }
-
-    const hostname = window.location.hostname;
-    const isAuthorized = [
-      'localhost',
-      '127.0.0.1',
-      'hack2ai.github.io',
-      'gen-lang-client-0121845763.firebaseapp.com',
-      'gen-lang-client-0121845763.web.app'
-    ].includes(hostname) || hostname.endsWith('.gitpod.io') || hostname.endsWith('.github.dev') || hostname.endsWith('.github.io');
-
-    if (!isAuthorized) {
-      console.log("Detecting unauthorized domain. Activating Guest fallback mode instantly.");
-      activateGuestSession();
-      return;
-    }
-
     try {
-      const result = await signInWithGoogle();
-      if (!result) {
-        console.log("Triggering Guest Session fallback due to login restriction...");
-        activateGuestSession();
-      }
+      await signInWithGoogle();
     } catch (error: any) {
-      console.error("Auth failed, falling back to Guest Session:", error);
-      activateGuestSession();
+      console.error('Sign-in failed:', error);
+      alert('Sign-in failed: ' + (error?.code || error?.message || 'unknown error'));
     }
   };
 
