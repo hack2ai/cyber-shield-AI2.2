@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import cors from 'cors';
 import { apiRouter } from './api/index.js';
@@ -34,6 +35,11 @@ export function createApp() {
     res.status(404).json({ error: 'API route not found' });
   });
 
+  const staticPath = path.join(process.cwd(), 'docs');
+  app.use(express.static(staticPath));
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const errorType = error && typeof error === 'object' && 'type' in error
       ? String((error as { type?: unknown }).type)
