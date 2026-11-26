@@ -2449,7 +2449,7 @@ export default function App() {
       recommendation = 'IMMEDIATELY terminate all active connections. Blacklist the target at network boundary firewall levels.';
     }
 
-    const resolvedIps = type === 'ip' ? [hostname] : (lastResult?.raw?.dns?.ipv4?.length ? lastResult.raw.dns.ipv4 : lastResult?.raw?.dns?.ipv6?.length ? lastResult.raw.dns.ipv6 : ['N/A']);
+    const resolvedIps = type === 'ip' ? [hostname] : (result?.raw?.dns?.ipv4?.length ? result.raw.dns.ipv4 : result?.raw?.dns?.ipv6?.length ? result.raw.dns.ipv6 : ['N/A']);
 
     let brandImpersonated = 'None';
     let visualIndicators: string[] = [];
@@ -2544,6 +2544,8 @@ export default function App() {
 
     setIsAnalyzing(true);
     setResult(null);
+      const _autoIp = null?.raw?.dns?.ipv4?.[0] || null?.raw?.dns?.ipv6?.[0] || '';
+      if (_autoIp) setIpAddress(_autoIp);
     setAnalysisError(null);
     setLogs([]);
 
