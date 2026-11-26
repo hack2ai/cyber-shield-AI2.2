@@ -3,11 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // Helper functions
     function isSignedIn() {
       return request.auth != null && (!('email_verified' in request.auth.token) || request.auth.token.email_verified == true);
@@ -195,3 +190,4 @@ service cloud.firestore {
     }
   }
 }
+
