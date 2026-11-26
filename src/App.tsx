@@ -2449,7 +2449,7 @@ export default function App() {
       recommendation = 'IMMEDIATELY terminate all active connections. Blacklist the target at network boundary firewall levels.';
     }
 
-    const resolvedIps = type === 'ip' ? [hostname] : [`185.156.174.${Math.floor(Math.random() * 254) + 1}`];
+    const resolvedIps = type === 'ip' ? [hostname] : (lastResult?.raw?.dns?.ipv4?.length ? lastResult.raw.dns.ipv4 : lastResult?.raw?.dns?.ipv6?.length ? lastResult.raw.dns.ipv6 : ['N/A']);
 
     let brandImpersonated = 'None';
     let visualIndicators: string[] = [];
@@ -2790,18 +2790,7 @@ export default function App() {
                   <span className="text-[7px] text-[#39FF14] font-black uppercase block">Level_4_Operator</span>
                 )}
               </div>
-              <button
-                onClick={() => setSimulatedRole(isAdmin ? 'user' : 'admin')}
-                className={cn(
-                  "px-2 py-1.5 text-[8px] font-black uppercase border transition-all cursor-pointer",
-                  isAdmin 
-                    ? "bg-purple-900/40 border-purple-500 text-purple-300" 
-                    : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                )}
-                title="Toggle Admin Simulation Mode for Testing"
-              >
-                {isAdmin ? "ADMIN ON" : "SIM ADMIN"}
-              </button>
+              
               <button
                 onClick={handleLogout}
                 className="p-2 bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 transition-all"
