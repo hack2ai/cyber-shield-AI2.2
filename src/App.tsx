@@ -2544,8 +2544,6 @@ export default function App() {
 
     setIsAnalyzing(true);
     setResult(null);
-      const _autoIp = null?.raw?.dns?.ipv4?.[0] || null?.raw?.dns?.ipv6?.[0] || '';
-      if (_autoIp) setIpAddress(_autoIp);
     setAnalysisError(null);
     setLogs([]);
 
@@ -2601,6 +2599,9 @@ export default function App() {
         addLog(`CLASSIFICATION: ${data.classification} | SCORE: ${data.threatScore}`);
       }
       setResult(data);
+      // Auto-fill the IP probe with a real resolved address (never with fallback/simulated data)
+      const _autoIp = data.raw?.dns?.ipv4?.[0] || data.raw?.dns?.ipv6?.[0] || '';
+      if (_autoIp && !isFallback) setIpAddress(_autoIp);
 
       // Save to Firestore if user is logged in
       if (user) {
